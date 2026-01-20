@@ -1,6 +1,7 @@
 package com.abovevacant.epitaph.wire;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import com.abovevacant.epitaph.core.BacktraceFrame;
@@ -23,19 +24,27 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class TombstoneDecoderTest {
 
-  @Test
-  void decodeSnapshot() throws IOException {
+  static Stream<String> tombstoneTestCases() {
+    return Stream.of("tombstone_sigsegv", "tombstone_exception");
+  }
+
+  @ParameterizedTest
+  @MethodSource("tombstoneTestCases")
+  void decodeSnapshot(String testCase) throws IOException {
+    String inputFile = testCase + ".pb.gz";
+    String expectedFile = testCase + "_expected.txt.gz";
+
     Tombstone tombstone;
-    try (InputStream gzipStream =
-        getClass().getClassLoader().getResourceAsStream("tombstone_sigsegv.pb.gz")) {
-      Assertions.assertNotNull(gzipStream);
+    try (InputStream gzipStream = getClass().getClassLoader().getResourceAsStream(inputFile)) {
+      assertNotNull(gzipStream, "Input file not found: " + inputFile);
       try (GZIPInputStream decompressed = new GZIPInputStream(gzipStream)) {
         tombstone = TombstoneDecoder.decode(decompressed);
       }
@@ -43,10 +52,9 @@ class TombstoneDecoderTest {
 
     String actual = formatTombstone(tombstone);
 
-    InputStream snapshotStream =
-        getClass().getClassLoader().getResourceAsStream("tombstone_sigsegv_expected.txt.gz");
+    InputStream snapshotStream = getClass().getClassLoader().getResourceAsStream(expectedFile);
     if (snapshotStream == null) {
-      File snapshotFile = new File("src/test/resources/tombstone_sigsegv_expected.txt.gz");
+      File snapshotFile = new File("src/test/resources/" + expectedFile);
       try (GZIPOutputStream gzipOut =
               new GZIPOutputStream(Files.newOutputStream(snapshotFile.toPath()));
           Writer writer = new OutputStreamWriter(gzipOut, StandardCharsets.UTF_8)) {
