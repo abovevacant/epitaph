@@ -9,6 +9,7 @@ import com.abovevacant.epitaph.core.Cause;
 import com.abovevacant.epitaph.core.FD;
 import com.abovevacant.epitaph.core.LogBuffer;
 import com.abovevacant.epitaph.core.LogMessage;
+import com.abovevacant.epitaph.core.MemoryDump;
 import com.abovevacant.epitaph.core.MemoryMapping;
 import com.abovevacant.epitaph.core.Register;
 import com.abovevacant.epitaph.core.Tombstone;
@@ -152,6 +153,44 @@ class TombstoneDecoderTest {
             sb.append(" (").append(frame.fileName).append(")");
           }
           sb.append("\n");
+        }
+      }
+
+      if (!thread.memoryDump.isEmpty()) {
+        sb.append("  memoryDumps:\n");
+        for (int i = 0; i < thread.memoryDump.size(); i++) {
+          MemoryDump dump = thread.memoryDump.get(i);
+          sb.append("    [").append(i).append("] ");
+          sb.append("register=").append(dump.registerName);
+          sb.append(", mapping=").append(dump.mappingName);
+          sb.append(", addr=0x").append(Long.toHexString(dump.beginAddress));
+          sb.append(", size=").append(dump.memory.length);
+          sb.append("\n");
+          // Format matches adb's tombstone text representation for easier comparison.
+          // Note: This differs from typical hex editors. The left side shows bytes interpreted
+          // as 64-bit little-endian words (useful for pointers/integers), while the right side
+          // shows bytes in sequential order as ASCII (useful for strings). The two sides are
+          // intentionally inconsistent - each optimized for different data types.
+          for (int j = 0; j < dump.memory.length; j += 16) {
+            long addr = dump.beginAddress + j;
+            sb.append(String.format("        %016x", addr));
+            // Left side: 64-bit little-endian words
+            for (int k = 0; k < 2; k++) {
+              int offset = j + k * 8;
+              long value = 0;
+              for (int b = 0; b < 8; b++) {
+                value |= (dump.memory[offset + b] & 0xffL) << (b * 8);
+              }
+              sb.append(String.format(" %016x", value));
+            }
+            // Right side: sequential bytes as ASCII
+            sb.append("  ");
+            for (int k = 0; k < 16; k++) {
+              int b = dump.memory[j + k] & 0xff;
+              sb.append(b >= 0x20 && b < 0x7f ? (char) b : '.');
+            }
+            sb.append("\n");
+          }
         }
       }
     }
