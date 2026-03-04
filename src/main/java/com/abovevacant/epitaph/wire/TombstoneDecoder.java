@@ -157,6 +157,14 @@ public final class TombstoneDecoder {
 
   private TombstoneDecoder() {}
 
+  private static void expectVarint(final int fieldNumber, final int wireType) throws IOException {
+    WireReader.expectWireType(fieldNumber, WireReader.WIRETYPE_VARINT, wireType);
+  }
+
+  private static void expectBytes(final int fieldNumber, final int wireType) throws IOException {
+    WireReader.expectWireType(fieldNumber, WireReader.WIRETYPE_LENGTH_DELIMITED, wireType);
+  }
+
   /**
    * Parses a tombstone from an InputStream.
    *
@@ -211,72 +219,95 @@ public final class TombstoneDecoder {
 
       switch (fieldNumber) {
         case TOMBSTONE_ARCH:
+          expectVarint(fieldNumber, wireType);
           arch = Architecture.fromValue(reader.readVarInt32());
           break;
         case TOMBSTONE_GUEST_ARCH:
+          expectVarint(fieldNumber, wireType);
           guestArch = Architecture.fromValue(reader.readVarInt32());
           break;
         case TOMBSTONE_BUILD_FINGERPRINT:
+          expectBytes(fieldNumber, wireType);
           buildFingerprint = reader.readString();
           break;
         case TOMBSTONE_REVISION:
+          expectBytes(fieldNumber, wireType);
           revision = reader.readString();
           break;
         case TOMBSTONE_TIMESTAMP:
+          expectBytes(fieldNumber, wireType);
           timestamp = reader.readString();
           break;
         case TOMBSTONE_PID:
+          expectVarint(fieldNumber, wireType);
           pid = reader.readVarInt32();
           break;
         case TOMBSTONE_TID:
+          expectVarint(fieldNumber, wireType);
           tid = reader.readVarInt32();
           break;
         case TOMBSTONE_UID:
+          expectVarint(fieldNumber, wireType);
           uid = reader.readVarInt32();
           break;
         case TOMBSTONE_SELINUX_LABEL:
+          expectBytes(fieldNumber, wireType);
           selinuxLabel = reader.readString();
           break;
         case TOMBSTONE_COMMAND_LINE:
+          expectBytes(fieldNumber, wireType);
           commandLine.add(reader.readString());
           break;
         case TOMBSTONE_PROCESS_UPTIME:
+          expectVarint(fieldNumber, wireType);
           processUptime = reader.readVarInt32();
           break;
         case TOMBSTONE_SIGNAL_INFO:
+          expectBytes(fieldNumber, wireType);
           signal = decodeSignal(reader.readMessage());
           break;
         case TOMBSTONE_ABORT_MESSAGE:
+          expectBytes(fieldNumber, wireType);
           abortMessage = reader.readString();
           break;
         case TOMBSTONE_CRASH_DETAILS:
+          expectBytes(fieldNumber, wireType);
           crashDetails.add(decodeCrashDetail(reader.readMessage()));
           break;
         case TOMBSTONE_CAUSES:
+          expectBytes(fieldNumber, wireType);
           causes.add(decodeCause(reader.readMessage()));
           break;
         case TOMBSTONE_THREADS:
+          expectBytes(fieldNumber, wireType);
           decodeThreadMapEntry(reader.readMessage(), threads);
           break;
         case TOMBSTONE_GUEST_THREADS:
+          expectBytes(fieldNumber, wireType);
           decodeThreadMapEntry(reader.readMessage(), guestThreads);
           break;
         case TOMBSTONE_MEMORY_MAPPINGS:
+          expectBytes(fieldNumber, wireType);
           memoryMappings.add(decodeMemoryMapping(reader.readMessage()));
           break;
         case TOMBSTONE_LOG_BUFFERS:
+          expectBytes(fieldNumber, wireType);
           logBuffers.add(decodeLogBuffer(reader.readMessage()));
           break;
         case TOMBSTONE_OPEN_FDS:
+          expectBytes(fieldNumber, wireType);
           openFds.add(decodeFD(reader.readMessage()));
           break;
         case TOMBSTONE_PAGE_SIZE:
+          expectVarint(fieldNumber, wireType);
           pageSize = reader.readVarInt32();
           break;
         case TOMBSTONE_HAS_BEEN_16KB_MODE:
+          expectVarint(fieldNumber, wireType);
           hasBeen16kbMode = reader.readBool();
           break;
         case TOMBSTONE_STACK_HISTORY_BUFFER:
+          expectBytes(fieldNumber, wireType);
           stackHistoryBuffer = decodeStackHistoryBuffer(reader.readMessage());
           break;
         default:
@@ -330,33 +361,43 @@ public final class TombstoneDecoder {
 
       switch (fieldNumber) {
         case SIGNAL_NUMBER:
+          expectVarint(fieldNumber, wireType);
           number = reader.readVarInt32();
           break;
         case SIGNAL_NAME:
+          expectBytes(fieldNumber, wireType);
           name = reader.readString();
           break;
         case SIGNAL_CODE:
+          expectVarint(fieldNumber, wireType);
           code = reader.readVarInt32();
           break;
         case SIGNAL_CODE_NAME:
+          expectBytes(fieldNumber, wireType);
           codeName = reader.readString();
           break;
         case SIGNAL_HAS_SENDER:
+          expectVarint(fieldNumber, wireType);
           hasSender = reader.readBool();
           break;
         case SIGNAL_SENDER_UID:
+          expectVarint(fieldNumber, wireType);
           senderUid = reader.readVarInt32();
           break;
         case SIGNAL_SENDER_PID:
+          expectVarint(fieldNumber, wireType);
           senderPid = reader.readVarInt32();
           break;
         case SIGNAL_HAS_FAULT_ADDRESS:
+          expectVarint(fieldNumber, wireType);
           hasFaultAddress = reader.readBool();
           break;
         case SIGNAL_FAULT_ADDRESS:
+          expectVarint(fieldNumber, wireType);
           faultAddress = reader.readVarInt();
           break;
         case SIGNAL_FAULT_ADJACENT_METADATA:
+          expectBytes(fieldNumber, wireType);
           faultAdjacentMetadata = decodeMemoryDump(reader.readMessage());
           break;
         default:
@@ -390,9 +431,11 @@ public final class TombstoneDecoder {
 
       switch (fieldNumber) {
         case MAP_KEY:
+          expectVarint(fieldNumber, wireType);
           key = reader.readVarInt32();
           break;
         case MAP_VALUE:
+          expectBytes(fieldNumber, wireType);
           value = decodeThread(reader.readMessage());
           break;
         default:
@@ -424,30 +467,39 @@ public final class TombstoneDecoder {
 
       switch (fieldNumber) {
         case THREAD_ID:
+          expectVarint(fieldNumber, wireType);
           id = reader.readVarInt32();
           break;
         case THREAD_NAME:
+          expectBytes(fieldNumber, wireType);
           name = reader.readString();
           break;
         case THREAD_REGISTERS:
+          expectBytes(fieldNumber, wireType);
           registers.add(decodeRegister(reader.readMessage()));
           break;
         case THREAD_BACKTRACE_NOTE:
+          expectBytes(fieldNumber, wireType);
           backtraceNote.add(reader.readString());
           break;
         case THREAD_UNREADABLE_ELF_FILES:
+          expectBytes(fieldNumber, wireType);
           unreadableElfFiles.add(reader.readString());
           break;
         case THREAD_CURRENT_BACKTRACE:
+          expectBytes(fieldNumber, wireType);
           backtrace.add(decodeBacktraceFrame(reader.readMessage()));
           break;
         case THREAD_MEMORY_DUMP:
+          expectBytes(fieldNumber, wireType);
           memoryDump.add(decodeMemoryDump(reader.readMessage()));
           break;
         case THREAD_TAGGED_ADDR_CTRL:
+          expectVarint(fieldNumber, wireType);
           taggedAddrCtrl = reader.readVarInt();
           break;
         case THREAD_PAC_ENABLED_KEYS:
+          expectVarint(fieldNumber, wireType);
           pacEnabledKeys = reader.readVarInt();
           break;
         default:
@@ -485,27 +537,35 @@ public final class TombstoneDecoder {
 
       switch (fieldNumber) {
         case FRAME_REL_PC:
+          expectVarint(fieldNumber, wireType);
           relPc = reader.readVarInt();
           break;
         case FRAME_PC:
+          expectVarint(fieldNumber, wireType);
           pc = reader.readVarInt();
           break;
         case FRAME_SP:
+          expectVarint(fieldNumber, wireType);
           sp = reader.readVarInt();
           break;
         case FRAME_FUNCTION_NAME:
+          expectBytes(fieldNumber, wireType);
           functionName = reader.readString();
           break;
         case FRAME_FUNCTION_OFFSET:
+          expectVarint(fieldNumber, wireType);
           functionOffset = reader.readVarInt();
           break;
         case FRAME_FILE_NAME:
+          expectBytes(fieldNumber, wireType);
           fileName = reader.readString();
           break;
         case FRAME_FILE_MAP_OFFSET:
+          expectVarint(fieldNumber, wireType);
           fileMapOffset = reader.readVarInt();
           break;
         case FRAME_BUILD_ID:
+          expectBytes(fieldNumber, wireType);
           buildId = reader.readString();
           break;
         default:
@@ -529,9 +589,11 @@ public final class TombstoneDecoder {
 
       switch (fieldNumber) {
         case REGISTER_NAME:
+          expectBytes(fieldNumber, wireType);
           name = reader.readString();
           break;
         case REGISTER_U64:
+          expectVarint(fieldNumber, wireType);
           value = reader.readVarInt();
           break;
         default:
@@ -561,30 +623,39 @@ public final class TombstoneDecoder {
 
       switch (fieldNumber) {
         case MAPPING_BEGIN_ADDRESS:
+          expectVarint(fieldNumber, wireType);
           beginAddress = reader.readVarInt();
           break;
         case MAPPING_END_ADDRESS:
+          expectVarint(fieldNumber, wireType);
           endAddress = reader.readVarInt();
           break;
         case MAPPING_OFFSET:
+          expectVarint(fieldNumber, wireType);
           offset = reader.readVarInt();
           break;
         case MAPPING_READ:
+          expectVarint(fieldNumber, wireType);
           read = reader.readBool();
           break;
         case MAPPING_WRITE:
+          expectVarint(fieldNumber, wireType);
           write = reader.readBool();
           break;
         case MAPPING_EXECUTE:
+          expectVarint(fieldNumber, wireType);
           execute = reader.readBool();
           break;
         case MAPPING_NAME:
+          expectBytes(fieldNumber, wireType);
           mappingName = reader.readString();
           break;
         case MAPPING_BUILD_ID:
+          expectBytes(fieldNumber, wireType);
           buildId = reader.readString();
           break;
         case MAPPING_LOAD_BIAS:
+          expectVarint(fieldNumber, wireType);
           loadBias = reader.readVarInt();
           break;
         default:
@@ -611,18 +682,23 @@ public final class TombstoneDecoder {
 
       switch (fieldNumber) {
         case MEMORY_DUMP_REGISTER_NAME:
+          expectBytes(fieldNumber, wireType);
           registerName = reader.readString();
           break;
         case MEMORY_DUMP_MAPPING_NAME:
+          expectBytes(fieldNumber, wireType);
           mappingName = reader.readString();
           break;
         case MEMORY_DUMP_BEGIN_ADDRESS:
+          expectVarint(fieldNumber, wireType);
           beginAddress = reader.readVarInt();
           break;
         case MEMORY_DUMP_MEMORY:
+          expectBytes(fieldNumber, wireType);
           memory = reader.readBytes();
           break;
         case MEMORY_DUMP_ARM_MTE_METADATA:
+          expectBytes(fieldNumber, wireType);
           armMteMetadata = decodeArmMTEMetadata(reader.readMessage());
           break;
         default:
@@ -645,6 +721,7 @@ public final class TombstoneDecoder {
       //noinspection SwitchStatementWithTooFewBranches
       switch (fieldNumber) {
         case ARM_MTE_MEMORY_TAGS:
+          expectBytes(fieldNumber, wireType);
           memoryTags = reader.readBytes();
           break;
         default:
@@ -667,9 +744,11 @@ public final class TombstoneDecoder {
 
       switch (fieldNumber) {
         case CAUSE_HUMAN_READABLE:
+          expectBytes(fieldNumber, wireType);
           humanReadable = reader.readString();
           break;
         case CAUSE_MEMORY_ERROR:
+          expectBytes(fieldNumber, wireType);
           memoryError = decodeMemoryError(reader.readMessage());
           break;
         default:
@@ -693,12 +772,15 @@ public final class TombstoneDecoder {
 
       switch (fieldNumber) {
         case MEMORY_ERROR_TOOL:
+          expectVarint(fieldNumber, wireType);
           tool = MemoryError.Tool.fromValue(reader.readVarInt32());
           break;
         case MEMORY_ERROR_TYPE:
+          expectVarint(fieldNumber, wireType);
           type = MemoryError.Type.fromValue(reader.readVarInt32());
           break;
         case MEMORY_ERROR_HEAP:
+          expectBytes(fieldNumber, wireType);
           heap = decodeHeapObject(reader.readMessage());
           break;
         default:
@@ -725,21 +807,27 @@ public final class TombstoneDecoder {
 
       switch (fieldNumber) {
         case HEAP_OBJECT_ADDRESS:
+          expectVarint(fieldNumber, wireType);
           address = reader.readVarInt();
           break;
         case HEAP_OBJECT_SIZE:
+          expectVarint(fieldNumber, wireType);
           size = reader.readVarInt();
           break;
         case HEAP_OBJECT_ALLOCATION_TID:
+          expectVarint(fieldNumber, wireType);
           allocationTid = reader.readVarInt();
           break;
         case HEAP_OBJECT_ALLOCATION_BACKTRACE:
+          expectBytes(fieldNumber, wireType);
           allocationBacktrace.add(decodeBacktraceFrame(reader.readMessage()));
           break;
         case HEAP_OBJECT_DEALLOCATION_TID:
+          expectVarint(fieldNumber, wireType);
           deallocationTid = reader.readVarInt();
           break;
         case HEAP_OBJECT_DEALLOCATION_BACKTRACE:
+          expectBytes(fieldNumber, wireType);
           deallocationBacktrace.add(decodeBacktraceFrame(reader.readMessage()));
           break;
         default:
@@ -765,15 +853,19 @@ public final class TombstoneDecoder {
 
       switch (fieldNumber) {
         case FD_FD:
+          expectVarint(fieldNumber, wireType);
           fd = reader.readVarInt32();
           break;
         case FD_PATH:
+          expectBytes(fieldNumber, wireType);
           path = reader.readString();
           break;
         case FD_OWNER:
+          expectBytes(fieldNumber, wireType);
           owner = reader.readString();
           break;
         case FD_TAG:
+          expectVarint(fieldNumber, wireType);
           tag = reader.readVarInt();
           break;
         default:
@@ -796,9 +888,11 @@ public final class TombstoneDecoder {
 
       switch (fieldNumber) {
         case LOG_BUFFER_NAME:
+          expectBytes(fieldNumber, wireType);
           name = reader.readString();
           break;
         case LOG_BUFFER_LOGS:
+          expectBytes(fieldNumber, wireType);
           logs.add(decodeLogMessage(reader.readMessage()));
           break;
         default:
@@ -825,21 +919,27 @@ public final class TombstoneDecoder {
 
       switch (fieldNumber) {
         case LOG_MESSAGE_TIMESTAMP:
+          expectBytes(fieldNumber, wireType);
           timestamp = reader.readString();
           break;
         case LOG_MESSAGE_PID:
+          expectVarint(fieldNumber, wireType);
           pid = reader.readVarInt32();
           break;
         case LOG_MESSAGE_TID:
+          expectVarint(fieldNumber, wireType);
           tid = reader.readVarInt32();
           break;
         case LOG_MESSAGE_PRIORITY:
+          expectVarint(fieldNumber, wireType);
           priority = reader.readVarInt32();
           break;
         case LOG_MESSAGE_TAG:
+          expectBytes(fieldNumber, wireType);
           tag = reader.readString();
           break;
         case LOG_MESSAGE_MESSAGE:
+          expectBytes(fieldNumber, wireType);
           message = reader.readString();
           break;
         default:
@@ -862,9 +962,11 @@ public final class TombstoneDecoder {
 
       switch (fieldNumber) {
         case CRASH_DETAIL_NAME:
+          expectBytes(fieldNumber, wireType);
           name = reader.readBytes();
           break;
         case CRASH_DETAIL_DATA:
+          expectBytes(fieldNumber, wireType);
           data = reader.readBytes();
           break;
         default:
@@ -888,9 +990,11 @@ public final class TombstoneDecoder {
 
       switch (fieldNumber) {
         case STACK_HISTORY_BUFFER_TID:
+          expectVarint(fieldNumber, wireType);
           tid = reader.readVarInt();
           break;
         case STACK_HISTORY_BUFFER_ENTRIES:
+          expectBytes(fieldNumber, wireType);
           entries.add(decodeStackHistoryBufferEntry(reader.readMessage()));
           break;
         default:
@@ -915,12 +1019,15 @@ public final class TombstoneDecoder {
 
       switch (fieldNumber) {
         case STACK_HISTORY_BUFFER_ENTRY_ADDR:
+          expectBytes(fieldNumber, wireType);
           addr = decodeBacktraceFrame(reader.readMessage());
           break;
         case STACK_HISTORY_BUFFER_ENTRY_FP:
+          expectVarint(fieldNumber, wireType);
           fp = reader.readVarInt();
           break;
         case STACK_HISTORY_BUFFER_ENTRY_TAG:
+          expectVarint(fieldNumber, wireType);
           tag = reader.readVarInt();
           break;
         default:

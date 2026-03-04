@@ -162,6 +162,47 @@ public final class WireReader {
     return new WireReader(data);
   }
 
+  /**
+   * Validates that the actual wire type matches the expected wire type.
+   *
+   * @param fieldNumber the field number (for error messages)
+   * @param expected the expected wire type
+   * @param actual the actual wire type from the tag
+   * @throws IOException if the wire types don't match
+   */
+  public static void expectWireType(final int fieldNumber, final int expected, final int actual)
+      throws IOException {
+    if (expected != actual) {
+      throw new IOException(
+          "Field "
+              + fieldNumber
+              + ": expected "
+              + wireTypeName(expected)
+              + " (wire type "
+              + expected
+              + ") but got "
+              + wireTypeName(actual)
+              + " (wire type "
+              + actual
+              + ")");
+    }
+  }
+
+  private static String wireTypeName(final int wireType) {
+    switch (wireType) {
+      case WIRETYPE_VARINT:
+        return "varint";
+      case WIRETYPE_FIXED64:
+        return "fixed64";
+      case WIRETYPE_LENGTH_DELIMITED:
+        return "length-delimited";
+      case WIRETYPE_FIXED32:
+        return "fixed32";
+      default:
+        return "unknown";
+    }
+  }
+
   /** Skips a field based on its wire type. */
   public void skipField(final int wireType) throws IOException {
     switch (wireType) {
