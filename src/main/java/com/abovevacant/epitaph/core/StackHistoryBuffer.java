@@ -1,5 +1,6 @@
 package com.abovevacant.epitaph.core;
 
+import java.util.Collections;
 import java.util.List;
 
 /** Stack history buffer for shadow call stack. */
@@ -13,6 +14,6 @@ public final class StackHistoryBuffer {
 
   public StackHistoryBuffer(final long tid, final List<StackHistoryBufferEntry> entries) {
     this.tid = tid;
-    this.entries = entries;
+    this.entries = Collections.unmodifiableList(entries);
   }
 }

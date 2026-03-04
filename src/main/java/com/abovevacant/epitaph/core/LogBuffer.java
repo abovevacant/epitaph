@@ -1,5 +1,6 @@
 package com.abovevacant.epitaph.core;
 
+import java.util.Collections;
 import java.util.List;
 
 /** A buffer of log messages. */
@@ -13,6 +14,6 @@ public final class LogBuffer {
 
   public LogBuffer(final String name, final List<LogMessage> logs) {
     this.name = name;
-    this.logs = logs;
+    this.logs = Collections.unmodifiableList(logs);
   }
 }

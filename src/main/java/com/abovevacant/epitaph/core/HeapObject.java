@@ -1,5 +1,6 @@
 package com.abovevacant.epitaph.core;
 
+import java.util.Collections;
 import java.util.List;
 
 /** Information about a heap allocation. */
@@ -33,8 +34,8 @@ public final class HeapObject {
     this.address = address;
     this.size = size;
     this.allocationTid = allocationTid;
-    this.allocationBacktrace = allocationBacktrace;
+    this.allocationBacktrace = Collections.unmodifiableList(allocationBacktrace);
     this.deallocationTid = deallocationTid;
-    this.deallocationBacktrace = deallocationBacktrace;
+    this.deallocationBacktrace = Collections.unmodifiableList(deallocationBacktrace);
   }
 }

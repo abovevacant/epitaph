@@ -1,5 +1,6 @@
 package com.abovevacant.epitaph.core;
 
+import java.util.Collections;
 import java.util.List;
 
 /** A thread from the crashed process. */
@@ -44,11 +45,11 @@ public final class TombstoneThread {
       final long pacEnabledKeys) {
     this.id = id;
     this.name = name;
-    this.registers = registers;
-    this.backtraceNote = backtraceNote;
-    this.unreadableElfFiles = unreadableElfFiles;
-    this.backtrace = backtrace;
-    this.memoryDump = memoryDump;
+    this.registers = Collections.unmodifiableList(registers);
+    this.backtraceNote = Collections.unmodifiableList(backtraceNote);
+    this.unreadableElfFiles = Collections.unmodifiableList(unreadableElfFiles);
+    this.backtrace = Collections.unmodifiableList(backtrace);
+    this.memoryDump = Collections.unmodifiableList(memoryDump);
     this.taggedAddrCtrl = taggedAddrCtrl;
     this.pacEnabledKeys = pacEnabledKeys;
   }
