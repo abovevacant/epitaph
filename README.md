@@ -1,12 +1,12 @@
 # epitaph
 
-Lightweight decoder for Android tombstones, focused on extracting meaning without adding weight.
+A lightweight decoder for Android tombstones, focused on extracting meaning without adding weight.
 
 ## Features
 
 - Decodes Android tombstone protobuf format
 - Zero runtime dependencies
-- Java 1.8+
+- Java 11
 
 ## Usage
 
