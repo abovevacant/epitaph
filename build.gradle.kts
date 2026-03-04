@@ -3,6 +3,7 @@ plugins {
     id("maven-publish")
     id("signing")
     id("com.diffplug.spotless") version "7.0.2"
+    id("net.thebugmc.gradle.sonatype-central-portal-publisher") version "1.2.4"
 }
 
 group = "com.abovevacant"
@@ -47,51 +48,34 @@ tasks.javadoc {
     }
 }
 
-publishing {
-    publications {
-        create<MavenPublication>("mavenJava") {
-            from(components["java"])
+centralPortal {
+    username = findProperty("centralPortalUsername") as String? ?: System.getenv("CENTRAL_PORTAL_USERNAME") ?: ""
+    password = findProperty("centralPortalPassword") as String? ?: System.getenv("CENTRAL_PORTAL_PASSWORD") ?: ""
 
-            pom {
-                name.set("epitaph")
-                description.set("Lightweight, zero-dependency decoder for Android tombstone protobuf files")
-                url.set("https://github.com/abovevacant/epitaph")
+    pom {
+        name.set("epitaph")
+        description.set("Lightweight, zero-dependency decoder for Android tombstone protobuf files")
+        url.set("https://github.com/abovevacant/epitaph")
 
-                licenses {
-                    license {
-                        name.set("MIT License")
-                        url.set("https://opensource.org/licenses/MIT")
-                    }
-                }
-
-                developers {
-                    developer {
-                        id.set("abovevacant")
-                        name.set("Above Vacant")
-                        url.set("https://github.com/abovevacant")
-                    }
-                }
-
-                scm {
-                    url.set("https://github.com/abovevacant/epitaph")
-                    connection.set("scm:git:git://github.com/abovevacant/epitaph.git")
-                    developerConnection.set("scm:git:ssh://git@github.com/abovevacant/epitaph.git")
-                }
+        licenses {
+            license {
+                name.set("MIT License")
+                url.set("https://opensource.org/licenses/MIT")
             }
         }
-    }
 
-    repositories {
-        maven {
-            name = "sonatype"
-            val releasesUrl = uri("https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/")
-            val snapshotsUrl = uri("https://s01.oss.sonatype.org/content/repositories/snapshots/")
-            url = if (version.toString().endsWith("SNAPSHOT")) snapshotsUrl else releasesUrl
-
-            credentials {
-                username = findProperty("ossrhUsername") as String? ?: System.getenv("OSSRH_USERNAME") ?: ""
-                password = findProperty("ossrhPassword") as String? ?: System.getenv("OSSRH_PASSWORD") ?: ""
+        developers {
+            developer {
+                id.set("abovevacant")
+                name.set("Above Vacant")
+                url.set("https://github.com/abovevacant")
             }
+        }
+
+        scm {
+            url.set("https://github.com/abovevacant/epitaph")
+            connection.set("scm:git:git://github.com/abovevacant/epitaph.git")
+            developerConnection.set("scm:git:ssh://git@github.com/abovevacant/epitaph.git")
         }
     }
 }
@@ -102,7 +86,7 @@ signing {
     isRequired = hasKey
     if (hasKey) {
         useGpgCmd()
-        sign(publishing.publications["mavenJava"])
+        sign(publishing.publications)
     }
 }
 
