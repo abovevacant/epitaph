@@ -6,7 +6,7 @@ A lightweight decoder for Android tombstones, focused on extracting meaning with
 
 - Decodes Android tombstone protobuf format
 - Zero runtime dependencies
-- Java 11
+- Java 8
 
 ## Usage
 
