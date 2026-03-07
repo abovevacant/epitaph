@@ -1,4 +1,5 @@
 # epitaph
+[![Maven Central Version](https://img.shields.io/maven-central/v/com.abovevacant/epitaph)](https://central.sonatype.com/artifact/com.abovevacant/epitaph)
 
 A lightweight decoder for Android tombstones, focused on extracting meaning without adding weight.
 
