@@ -46,6 +46,10 @@ class Example {
 | `logBuffers`        | Logcat dumps                                    |
 | `openFds`           | Open file descriptors                           |
 
+## Proto Schema
+
+This library currently tracks [this version](https://android.googlesource.com/platform/system/core/+/981d145117e8992842cdddee555c57e60c7a220a/debuggerd/proto/tombstone.proto) of the tombstone proto definition.
+
 ## Build
 
 ```
