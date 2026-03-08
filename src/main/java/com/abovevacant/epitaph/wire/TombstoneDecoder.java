@@ -710,7 +710,7 @@ public final class TombstoneDecoder {
     return new MemoryDump(registerName, mappingName, beginAddress, memory, armMteMetadata);
   }
 
-  private static ArmMTEMetadata decodeArmMTEMetadata(final WireReader reader) throws IOException {
+  static ArmMTEMetadata decodeArmMTEMetadata(final WireReader reader) throws IOException {
     byte[] memoryTags = new byte[0];
 
     int tag;
@@ -760,7 +760,7 @@ public final class TombstoneDecoder {
     return new Cause(humanReadable, memoryError);
   }
 
-  private static MemoryError decodeMemoryError(final WireReader reader) throws IOException {
+  static MemoryError decodeMemoryError(final WireReader reader) throws IOException {
     MemoryError.Tool tool = MemoryError.Tool.GWP_ASAN;
     MemoryError.Type type = MemoryError.Type.UNKNOWN;
     HeapObject heap = null;
@@ -792,7 +792,7 @@ public final class TombstoneDecoder {
     return new MemoryError(tool, type, heap);
   }
 
-  private static HeapObject decodeHeapObject(final WireReader reader) throws IOException {
+  static HeapObject decodeHeapObject(final WireReader reader) throws IOException {
     long address = 0;
     long size = 0;
     long allocationTid = 0;
@@ -877,7 +877,7 @@ public final class TombstoneDecoder {
     return new FD(fd, path, owner, tag);
   }
 
-  private static LogBuffer decodeLogBuffer(final WireReader reader) throws IOException {
+  static LogBuffer decodeLogBuffer(final WireReader reader) throws IOException {
     String name = "";
     final List<LogMessage> logs = new ArrayList<>();
 
@@ -904,7 +904,7 @@ public final class TombstoneDecoder {
     return new LogBuffer(name, logs);
   }
 
-  private static LogMessage decodeLogMessage(final WireReader reader) throws IOException {
+  static LogMessage decodeLogMessage(final WireReader reader) throws IOException {
     String timestamp = "";
     int pid = 0;
     int tid = 0;
@@ -951,7 +951,7 @@ public final class TombstoneDecoder {
     return new LogMessage(timestamp, pid, tid, priority, tag, message);
   }
 
-  private static CrashDetail decodeCrashDetail(final WireReader reader) throws IOException {
+  static CrashDetail decodeCrashDetail(final WireReader reader) throws IOException {
     byte[] name = new byte[0];
     byte[] data = new byte[0];
 
@@ -978,8 +978,7 @@ public final class TombstoneDecoder {
     return new CrashDetail(name, data);
   }
 
-  private static StackHistoryBuffer decodeStackHistoryBuffer(final WireReader reader)
-      throws IOException {
+  static StackHistoryBuffer decodeStackHistoryBuffer(final WireReader reader) throws IOException {
     long tid = 0;
     final List<StackHistoryBufferEntry> entries = new ArrayList<>();
 
@@ -1006,7 +1005,7 @@ public final class TombstoneDecoder {
     return new StackHistoryBuffer(tid, entries);
   }
 
-  private static StackHistoryBufferEntry decodeStackHistoryBufferEntry(final WireReader reader)
+  static StackHistoryBufferEntry decodeStackHistoryBufferEntry(final WireReader reader)
       throws IOException {
     BacktraceFrame addr = null;
     long fp = 0;
