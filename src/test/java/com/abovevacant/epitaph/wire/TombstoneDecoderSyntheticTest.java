@@ -525,8 +525,7 @@ class TombstoneDecoderSyntheticTest {
 
     @Test
     void taggedAddrCtrlAndPacEnabledKeys() throws IOException {
-      byte[] threadMsg =
-          concat(varintField(1, 1), varintField(6, 0xAB), varintField(8, 0xCD));
+      byte[] threadMsg = concat(varintField(1, 1), varintField(6, 0xAB), varintField(8, 0xCD));
       byte[] mapEntry = concat(varintField(1, 1), lengthDelimited(2, threadMsg));
       byte[] data = lengthDelimited(16, mapEntry);
       Tombstone t = TombstoneDecoder.decode(data);
