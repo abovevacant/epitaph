@@ -260,6 +260,16 @@ class TombstoneDecoderSyntheticTest {
   }
 
   @Nested
+  class TombstoneHasSignal {
+
+    @Test
+    void noSignal() throws IOException {
+      Tombstone t = TombstoneDecoder.decode(new byte[] {});
+      assertFalse(t.hasSignal());
+    }
+  }
+
+  @Nested
   class ArchitectureEnumCoverage {
 
     @Test
@@ -270,6 +280,258 @@ class TombstoneDecoderSyntheticTest {
     @Test
     void riscv64Value() {
       assertEquals(4, Architecture.RISCV64.getValue());
+    }
+  }
+
+  /** Tests that unknown fields are skipped in each sub-decoder. */
+  @Nested
+  class UnknownFieldSkipping {
+
+    @Test
+    void logMessage() throws IOException {
+      byte[] data = concat(varintField(99, 1), stringField(6, "msg"));
+      LogMessage msg = TombstoneDecoder.decodeLogMessage(reader(data));
+      assertEquals("msg", msg.message);
+    }
+
+    @Test
+    void logBuffer() throws IOException {
+      byte[] data = concat(varintField(99, 1), stringField(1, "main"));
+      LogBuffer buf = TombstoneDecoder.decodeLogBuffer(reader(data));
+      assertEquals("main", buf.name);
+    }
+
+    @Test
+    void crashDetail() throws IOException {
+      byte[] data = concat(varintField(99, 1), lengthDelimited(1, new byte[] {0x42}));
+      CrashDetail detail = TombstoneDecoder.decodeCrashDetail(reader(data));
+      assertArrayEquals(new byte[] {0x42}, detail.name);
+    }
+
+    @Test
+    void heapObject() throws IOException {
+      byte[] data = concat(varintField(99, 1), varintField(1, 0xFF));
+      HeapObject obj = TombstoneDecoder.decodeHeapObject(reader(data));
+      assertEquals(0xFF, obj.address);
+    }
+
+    @Test
+    void memoryError() throws IOException {
+      byte[] data = concat(varintField(99, 1), varintField(1, 1));
+      MemoryError err = TombstoneDecoder.decodeMemoryError(reader(data));
+      assertEquals(MemoryError.Tool.SCUDO, err.tool);
+    }
+
+    @Test
+    void stackHistoryBuffer() throws IOException {
+      byte[] data = concat(varintField(99, 1), varintField(1, 42));
+      StackHistoryBuffer shb = TombstoneDecoder.decodeStackHistoryBuffer(reader(data));
+      assertEquals(42, shb.tid);
+    }
+
+    @Test
+    void stackHistoryBufferEntry() throws IOException {
+      byte[] data = concat(varintField(99, 1), varintField(2, 0xBEEF));
+      StackHistoryBufferEntry entry = TombstoneDecoder.decodeStackHistoryBufferEntry(reader(data));
+      assertEquals(0xBEEF, entry.fp);
+    }
+
+    @Test
+    void armMteMetadata() throws IOException {
+      byte[] data = concat(varintField(99, 1), lengthDelimited(1, new byte[] {0x01}));
+      ArmMTEMetadata mte = TombstoneDecoder.decodeArmMTEMetadata(reader(data));
+      assertArrayEquals(new byte[] {0x01}, mte.memoryTags);
+    }
+
+    @Test
+    void signal() throws IOException {
+      byte[] data = concat(varintField(99, 1), varintField(1, 11));
+      Signal sig = TombstoneDecoder.decodeSignal(reader(data));
+      assertEquals(11, sig.number);
+    }
+
+    @Test
+    void thread() throws IOException {
+      byte[] data = concat(varintField(99, 1), varintField(1, 42));
+      TombstoneThread thread = TombstoneDecoder.decodeThread(reader(data));
+      assertEquals(42, thread.id);
+    }
+
+    @Test
+    void threadMapEntry() throws IOException {
+      java.util.Map<Integer, TombstoneThread> threads = new java.util.HashMap<>();
+      byte[] threadMsg = varintField(1, 1);
+      byte[] data = concat(varintField(99, 1), varintField(1, 1), lengthDelimited(2, threadMsg));
+      TombstoneDecoder.decodeThreadMapEntry(reader(data), threads);
+      assertEquals(1, threads.size());
+    }
+
+    @Test
+    void backtraceFrame() throws IOException {
+      byte[] data = concat(varintField(99, 1), varintField(1, 0x1000));
+      BacktraceFrame frame = TombstoneDecoder.decodeBacktraceFrame(reader(data));
+      assertEquals(0x1000, frame.relPc);
+    }
+
+    @Test
+    void register() throws IOException {
+      byte[] data = concat(varintField(99, 1), stringField(1, "x0"));
+      Register reg = TombstoneDecoder.decodeRegister(reader(data));
+      assertEquals("x0", reg.name);
+    }
+
+    @Test
+    void memoryMapping() throws IOException {
+      byte[] data = concat(varintField(99, 1), varintField(1, 0x1000));
+      MemoryMapping mapping = TombstoneDecoder.decodeMemoryMapping(reader(data));
+      assertEquals(0x1000, mapping.beginAddress);
+    }
+
+    @Test
+    void memoryDump() throws IOException {
+      byte[] data = concat(varintField(99, 1), stringField(1, "x0"));
+      MemoryDump dump = TombstoneDecoder.decodeMemoryDump(reader(data));
+      assertEquals("x0", dump.registerName);
+    }
+
+    @Test
+    void memoryDumpWithArmMteMetadata() throws IOException {
+      byte[] mte = lengthDelimited(1, new byte[] {0x01});
+      byte[] data = concat(varintField(99, 1), stringField(1, "x0"), lengthDelimited(6, mte));
+      MemoryDump dump = TombstoneDecoder.decodeMemoryDump(reader(data));
+      assertNotNull(dump.armMteMetadata);
+      assertArrayEquals(new byte[] {0x01}, dump.armMteMetadata.memoryTags);
+    }
+
+    @Test
+    void cause() throws IOException {
+      byte[] data = concat(varintField(99, 1), stringField(1, "oops"));
+      Cause cause = TombstoneDecoder.decodeCause(reader(data));
+      assertEquals("oops", cause.humanReadable);
+    }
+
+    @Test
+    void causeWithMemoryError() throws IOException {
+      byte[] memErr = varintField(1, 1);
+      byte[] data = concat(varintField(99, 1), stringField(1, "oops"), lengthDelimited(2, memErr));
+      Cause cause = TombstoneDecoder.decodeCause(reader(data));
+      assertEquals("oops", cause.humanReadable);
+      assertNotNull(cause.memoryError);
+      assertEquals(MemoryError.Tool.SCUDO, cause.memoryError.tool);
+    }
+
+    @Test
+    void fd() throws IOException {
+      byte[] data = concat(varintField(99, 1), varintField(1, 3));
+      FD fd = TombstoneDecoder.decodeFD(reader(data));
+      assertEquals(3, fd.fd);
+    }
+  }
+
+  /** Tests for tombstone-level paths not covered by real snapshots. */
+  @Nested
+  class TombstoneLevelPaths {
+
+    @Test
+    void crashDetailsAtTombstoneLevel() throws IOException {
+      byte[] detail = concat(lengthDelimited(1, "name".getBytes(StandardCharsets.UTF_8)));
+      byte[] data = lengthDelimited(21, detail);
+      Tombstone t = TombstoneDecoder.decode(data);
+      assertEquals(1, t.crashDetails.size());
+    }
+
+    @Test
+    void guestThreadsAtTombstoneLevel() throws IOException {
+      byte[] threadMsg = concat(varintField(1, 50), stringField(2, "guest"));
+      byte[] mapEntry = concat(varintField(1, 50), lengthDelimited(2, threadMsg));
+      byte[] data = lengthDelimited(25, mapEntry);
+      Tombstone t = TombstoneDecoder.decode(data);
+      assertEquals(1, t.guestThreads.size());
+      assertEquals("guest", t.guestThreads.get(50).name);
+    }
+
+    @Test
+    void logBuffersAtTombstoneLevel() throws IOException {
+      byte[] logMsg = stringField(6, "hello");
+      byte[] logBuf = concat(stringField(1, "main"), lengthDelimited(2, logMsg));
+      byte[] data = lengthDelimited(18, logBuf);
+      Tombstone t = TombstoneDecoder.decode(data);
+      assertEquals(1, t.logBuffers.size());
+    }
+
+    @Test
+    void stackHistoryBufferAtTombstoneLevel() throws IOException {
+      byte[] shb = varintField(1, 123);
+      byte[] data = lengthDelimited(26, shb);
+      Tombstone t = TombstoneDecoder.decode(data);
+      assertNotNull(t.stackHistoryBuffer);
+      assertEquals(123, t.stackHistoryBuffer.tid);
+    }
+  }
+
+  /** Tests for signal fields not present in real snapshots. */
+  @Nested
+  class SignalFieldPaths {
+
+    @Test
+    void senderFields() throws IOException {
+      byte[] signalMsg =
+          concat(
+              varintField(1, 9),
+              stringField(2, "SIGKILL"),
+              varintField(5, 1), // hasSender
+              varintField(6, 1000), // senderUid
+              varintField(7, 4321)); // senderPid
+      byte[] data = lengthDelimited(10, signalMsg);
+      Tombstone t = TombstoneDecoder.decode(data);
+      assertNotNull(t.signal);
+      assertTrue(t.signal.hasSender);
+      assertEquals(1000, t.signal.senderUid);
+      assertEquals(4321, t.signal.senderPid);
+    }
+
+    @Test
+    void faultAdjacentMetadata() throws IOException {
+      byte[] memDump = concat(stringField(1, "x0"), varintField(3, 0x1000));
+      byte[] signalMsg =
+          concat(varintField(1, 11), stringField(2, "SIGSEGV"), lengthDelimited(10, memDump));
+      byte[] data = lengthDelimited(10, signalMsg);
+      Tombstone t = TombstoneDecoder.decode(data);
+      assertNotNull(t.signal);
+      assertNotNull(t.signal.faultAdjacentMetadata);
+      assertEquals("x0", t.signal.faultAdjacentMetadata.registerName);
+    }
+  }
+
+  /** Tests for thread sub-fields not covered by snapshots. */
+  @Nested
+  class ThreadFieldPaths {
+
+    @Test
+    void backtraceNoteAndUnreadableElfFiles() throws IOException {
+      byte[] threadMsg =
+          concat(
+              varintField(1, 1),
+              stringField(7, "note1"), // backtraceNote
+              stringField(9, "bad.so")); // unreadableElfFiles
+      byte[] mapEntry = concat(varintField(1, 1), lengthDelimited(2, threadMsg));
+      byte[] data = lengthDelimited(16, mapEntry);
+      Tombstone t = TombstoneDecoder.decode(data);
+      assertEquals(1, t.threads.get(1).backtraceNote.size());
+      assertEquals("note1", t.threads.get(1).backtraceNote.get(0));
+      assertEquals(1, t.threads.get(1).unreadableElfFiles.size());
+      assertEquals("bad.so", t.threads.get(1).unreadableElfFiles.get(0));
+    }
+
+    @Test
+    void taggedAddrCtrlAndPacEnabledKeys() throws IOException {
+      byte[] threadMsg =
+          concat(varintField(1, 1), varintField(6, 0xAB), varintField(8, 0xCD));
+      byte[] mapEntry = concat(varintField(1, 1), lengthDelimited(2, threadMsg));
+      byte[] data = lengthDelimited(16, mapEntry);
+      Tombstone t = TombstoneDecoder.decode(data);
+      assertEquals(0xAB, t.threads.get(1).taggedAddrCtrl);
+      assertEquals(0xCD, t.threads.get(1).pacEnabledKeys);
     }
   }
 }

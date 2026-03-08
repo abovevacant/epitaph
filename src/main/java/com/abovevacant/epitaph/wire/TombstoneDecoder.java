@@ -342,7 +342,7 @@ public final class TombstoneDecoder {
         stackHistoryBuffer);
   }
 
-  private static Signal decodeSignal(final WireReader reader) throws IOException {
+  static Signal decodeSignal(final WireReader reader) throws IOException {
     int number = 0;
     String name = "";
     int code = 0;
@@ -419,7 +419,7 @@ public final class TombstoneDecoder {
         faultAdjacentMetadata);
   }
 
-  private static void decodeThreadMapEntry(
+  static void decodeThreadMapEntry(
       final WireReader reader, final Map<Integer, TombstoneThread> threads) throws IOException {
     int key = 0;
     TombstoneThread value = null;
@@ -449,7 +449,7 @@ public final class TombstoneDecoder {
     }
   }
 
-  private static TombstoneThread decodeThread(final WireReader reader) throws IOException {
+  static TombstoneThread decodeThread(final WireReader reader) throws IOException {
     int id = 0;
     String name = "";
     final List<Register> registers = new ArrayList<>();
@@ -520,7 +520,7 @@ public final class TombstoneDecoder {
         pacEnabledKeys);
   }
 
-  private static BacktraceFrame decodeBacktraceFrame(final WireReader reader) throws IOException {
+  static BacktraceFrame decodeBacktraceFrame(final WireReader reader) throws IOException {
     long relPc = 0;
     long pc = 0;
     long sp = 0;
@@ -578,7 +578,7 @@ public final class TombstoneDecoder {
         relPc, pc, sp, functionName, functionOffset, fileName, fileMapOffset, buildId);
   }
 
-  private static Register decodeRegister(final WireReader reader) throws IOException {
+  static Register decodeRegister(final WireReader reader) throws IOException {
     String name = "";
     long value = 0;
 
@@ -605,7 +605,7 @@ public final class TombstoneDecoder {
     return new Register(name, value);
   }
 
-  private static MemoryMapping decodeMemoryMapping(final WireReader reader) throws IOException {
+  static MemoryMapping decodeMemoryMapping(final WireReader reader) throws IOException {
     long beginAddress = 0;
     long endAddress = 0;
     long offset = 0;
@@ -668,7 +668,7 @@ public final class TombstoneDecoder {
         beginAddress, endAddress, offset, read, write, execute, mappingName, buildId, loadBias);
   }
 
-  private static MemoryDump decodeMemoryDump(final WireReader reader) throws IOException {
+  static MemoryDump decodeMemoryDump(final WireReader reader) throws IOException {
     String registerName = "";
     String mappingName = "";
     long beginAddress = 0;
@@ -733,7 +733,7 @@ public final class TombstoneDecoder {
     return new ArmMTEMetadata(memoryTags);
   }
 
-  private static Cause decodeCause(final WireReader reader) throws IOException {
+  static Cause decodeCause(final WireReader reader) throws IOException {
     String humanReadable = "";
     MemoryError memoryError = null;
 
@@ -840,7 +840,7 @@ public final class TombstoneDecoder {
         address, size, allocationTid, allocationBacktrace, deallocationTid, deallocationBacktrace);
   }
 
-  private static FD decodeFD(final WireReader reader) throws IOException {
+  static FD decodeFD(final WireReader reader) throws IOException {
     int fd = 0;
     String path = "";
     String owner = "";
