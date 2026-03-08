@@ -2,6 +2,7 @@ plugins {
     id("java-library")
     id("maven-publish")
     id("signing")
+    id("jacoco")
     id("com.diffplug.spotless") version "7.0.2"
     id("net.thebugmc.gradle.sonatype-central-portal-publisher") version "1.2.4"
 }
@@ -28,6 +29,42 @@ configure<JavaPluginExtension> {
 
 tasks.test {
     useJUnitPlatform()
+    finalizedBy(tasks.jacocoTestReport)
+}
+
+tasks.jacocoTestReport {
+    dependsOn(tasks.test)
+    reports {
+        xml.required.set(true)
+    }
+}
+
+tasks.register("coverageSummary") {
+    dependsOn(tasks.jacocoTestReport)
+    doLast {
+        val report = file("build/reports/jacoco/test/jacocoTestReport.xml")
+        if (!report.exists()) {
+            println("No coverage report found. Run tests first.")
+            return@doLast
+        }
+        val xml = javax.xml.parsers.DocumentBuilderFactory.newInstance().apply {
+            setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false)
+        }.newDocumentBuilder().parse(report)
+        val counters = xml.documentElement.childNodes
+        println("\n--- Coverage Summary ---")
+        for (i in 0 until counters.length) {
+            val node = counters.item(i)
+            if (node.nodeName == "counter") {
+                val type = node.attributes.getNamedItem("type").nodeValue
+                val missed = node.attributes.getNamedItem("missed").nodeValue.toDouble()
+                val covered = node.attributes.getNamedItem("covered").nodeValue.toDouble()
+                val total = missed + covered
+                val pct = if (total > 0) (covered / total * 100) else 0.0
+                println("  %-14s %6.1f%% (%s/%s)".format(type, pct, covered.toInt(), total.toInt()))
+            }
+        }
+        println()
+    }
 }
 
 tasks.jar {
