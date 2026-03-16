@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-03-16
+
 ### Added
 - Add `scripts/release.py` for tag-driven Maven Central releases.
 - Add artifact provenance metadata via JAR manifest `Build-Commit` / `Build-Tag` and POM `scm.tag`.
@@ -23,5 +25,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Lightweight Android tombstone protobuf implementation (core tombstone model, wire reader, and decoder).
 - Initial Maven Central release.
 
-[Unreleased]: https://github.com/abovevacant/epitaph/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/abovevacant/epitaph/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/abovevacant/epitaph/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/abovevacant/epitaph/tree/v0.1.0
