@@ -17,6 +17,7 @@ repositories {
 dependencies {
     testImplementation(platform("org.junit:junit-bom:5.10.0"))
     testImplementation("org.junit.jupiter:junit-jupiter")
+    testImplementation("org.ow2.asm:asm:9.7.1")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
@@ -25,6 +26,10 @@ configure<JavaPluginExtension> {
     targetCompatibility = JavaVersion.VERSION_1_8
     withJavadocJar()
     withSourcesJar()
+}
+
+tasks.withType<JavaCompile>().configureEach {
+    options.compilerArgs.add("-parameters")
 }
 
 tasks.test {
