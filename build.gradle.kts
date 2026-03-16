@@ -8,7 +8,29 @@ plugins {
 }
 
 group = "com.abovevacant"
-version = "0.1.0"
+
+fun runCommand(vararg args: String): String? =
+    try {
+        val process =
+            ProcessBuilder(*args)
+                .directory(rootDir)
+                .redirectErrorStream(true)
+                .start()
+        val output = process.inputStream.bufferedReader().use { it.readText().trim() }
+        if (process.waitFor() == 0) output.ifEmpty { null } else null
+    } catch (_: Exception) {
+        null
+    }
+
+val gitCommit =
+    System.getenv("GITHUB_SHA")?.ifBlank { null }
+        ?: runCommand("git", "rev-parse", "--verify", "HEAD")
+
+val gitTag =
+    when (System.getenv("GITHUB_REF_TYPE")) {
+        "tag" -> System.getenv("GITHUB_REF_NAME")?.ifBlank { null }
+        else -> runCommand("git", "describe", "--tags", "--exact-match", "HEAD")
+    }
 
 repositories {
     mavenCentral()
@@ -74,12 +96,16 @@ tasks.register("coverageSummary") {
 
 tasks.jar {
     manifest {
-        attributes(
-            "Implementation-Title" to project.name,
-            "Implementation-Version" to project.version,
-            "Implementation-Vendor" to "Above Vacant",
-            "Automatic-Module-Name" to "com.abovevacant.epitaph"
-        )
+        val manifestAttributes =
+            mutableMapOf(
+                "Implementation-Title" to project.name,
+                "Implementation-Version" to project.version,
+                "Implementation-Vendor" to "Above Vacant",
+                "Automatic-Module-Name" to "com.abovevacant.epitaph"
+            )
+        gitCommit?.let { manifestAttributes["Build-Commit"] = it }
+        gitTag?.let { manifestAttributes["Build-Tag"] = it }
+        attributes(manifestAttributes)
     }
 }
 
@@ -118,6 +144,16 @@ centralPortal {
             url.set("https://github.com/abovevacant/epitaph")
             connection.set("scm:git:git://github.com/abovevacant/epitaph.git")
             developerConnection.set("scm:git:ssh://git@github.com/abovevacant/epitaph.git")
+        }
+
+        withXml {
+            val projectNode = asNode()
+            val scmNode =
+                (projectNode.children().firstOrNull {
+                    it is groovy.util.Node && it.name().toString().endsWith("scm")
+                } as? groovy.util.Node)
+                    ?: projectNode.appendNode("scm")
+            scmNode.appendNode("tag", gitTag ?: "HEAD")
         }
     }
 }
