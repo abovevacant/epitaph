@@ -15,6 +15,12 @@ from typing import NoReturn
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 VERSION_RE = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z]+)*$")
+ARTIFACT_GROUP = "com.abovevacant"
+ARTIFACT_ID = "epitaph"
+README_JAR_LINK_MARKER = "<!-- release:jar-link -->"
+README_JAR_LINK_RE = re.compile(
+    rf"^.*{re.escape(README_JAR_LINK_MARKER)}.*$", re.MULTILINE
+)
 
 
 def fail(message: str, exit_code: int = 1) -> NoReturn:
@@ -112,6 +118,44 @@ def render_changelog(text: str, version: str, previous_version: str) -> str:
     return text
 
 
+def maven_group_path() -> str:
+    return ARTIFACT_GROUP.replace(".", "/")
+
+
+def published_jar_url(version: str) -> str:
+    return (
+        f"https://repo.maven.apache.org/maven2/{maven_group_path()}/{ARTIFACT_ID}/"
+        f"{version}/{ARTIFACT_ID}-{version}.jar"
+    )
+
+
+def local_jar_path(version: str) -> Path:
+    return ROOT_DIR / "build" / "libs" / f"{ARTIFACT_ID}-{version}.jar"
+
+
+def format_size(byte_count: int) -> str:
+    if byte_count >= 1_000_000:
+        return f"{byte_count / 1_000_000:.1f} MB"
+    if byte_count >= 1_000:
+        return f"{byte_count / 1_000:.1f} KB"
+    return f"{byte_count} B"
+
+
+def render_readme(text: str, version: str, jar_size_label: str) -> str:
+    replacement = (
+        "A lightweight "
+        f"([runtime JAR: {jar_size_label}]({published_jar_url(version)})) "
+        "decoder for Android tombstones, focused on extracting meaning without adding weight. "
+        f"{README_JAR_LINK_MARKER}"
+    )
+    updated, count = README_JAR_LINK_RE.subn(replacement, text, count=1)
+    if count != 1:
+        fail(
+            "README.md must contain exactly one release jar link line marked with "
+            f"{README_JAR_LINK_MARKER}."
+        )
+    return updated
+
 def relative_label(path: Path) -> str:
     return path.relative_to(ROOT_DIR).as_posix()
 
@@ -126,6 +170,22 @@ def print_diff(path: Path, before: str, after: str) -> None:
         tofile=f"b/{relative_label(path)}",
     )
     print("".join(diff), end="")
+
+
+def print_post_publish_recovery(
+    *, remote: str, branch: str, tag: str, branch_pushed: bool
+) -> None:
+    print(
+        "Release was published, but updating README or pushing git refs failed.",
+        file=sys.stderr,
+    )
+    print(
+        "Fix README.md if needed, commit it, then push the branch and tag manually.",
+        file=sys.stderr,
+    )
+    if not branch_pushed:
+        print(f"Push manually: git push {remote} {branch}", file=sys.stderr)
+    print(f"Push manually: git push {remote} {tag}", file=sys.stderr)
 
 
 def main() -> None:
@@ -147,6 +207,10 @@ def main() -> None:
     gradle_properties_path = ROOT_DIR / "gradle.properties"
     if not gradle_properties_path.exists():
         fail("gradle.properties is missing.")
+
+    readme_path = ROOT_DIR / "README.md"
+    if not readme_path.exists():
+        fail("README.md is missing.")
 
     branch_result = run(
         "git", "symbolic-ref", "--quiet", "--short", "HEAD", check=False
@@ -197,8 +261,11 @@ def main() -> None:
 
     current_changelog = changelog_path.read_text(encoding="utf-8")
     current_gradle_properties = gradle_properties_path.read_text(encoding="utf-8")
+    current_readme = readme_path.read_text(encoding="utf-8")
+
     next_changelog = render_changelog(current_changelog, version, current_version)
     next_gradle_properties = render_gradle_version(current_gradle_properties, version)
+    next_readme_preview = render_readme(current_readme, version, "<local build size>")
 
     if check_mode:
         print(f"Release check for {version} succeeded.")
@@ -210,12 +277,17 @@ def main() -> None:
         print(f"- create commit Release {version}")
         print(f"- create annotated tag {tag}")
         print("- run ./gradlew clean build publishToCentralPortal")
+        print(
+            f"- update README.md to link the release JAR URL for {version} using the locally built JAR size"
+        )
+        print(f"- create commit docs: update README jar link for {version}")
         print(f"- push branch {branch} and tag {tag} to {remote}")
         print()
         print_diff(
             gradle_properties_path, current_gradle_properties, next_gradle_properties
         )
         print_diff(changelog_path, current_changelog, next_changelog)
+        print_diff(readme_path, current_readme, next_readme_preview)
         return
 
     gradle_properties_path.write_text(next_gradle_properties, encoding="utf-8")
@@ -224,7 +296,9 @@ def main() -> None:
     commit_created = False
     tag_created = False
     publish_succeeded = False
+    readme_commit_created = False
     branch_pushed = False
+    jar_size_label: str | None = None
 
     try:
         run("git", "add", "gradle.properties", "CHANGELOG.md")
@@ -240,17 +314,27 @@ def main() -> None:
         )
         publish_succeeded = True
 
+        jar_path = local_jar_path(version)
+        if not jar_path.exists():
+            fail(f"Expected built JAR at {relative_label(jar_path)} was not found.")
+        jar_size_label = format_size(jar_path.stat().st_size)
+
+        current_readme = readme_path.read_text(encoding="utf-8")
+        next_readme = render_readme(current_readme, version, jar_size_label)
+        if next_readme != current_readme:
+            readme_path.write_text(next_readme, encoding="utf-8")
+            run("git", "add", "README.md")
+            run("git", "commit", "-m", f"docs: update README jar link for {version}")
+            readme_commit_created = True
+
         run("git", "push", remote, branch)
         branch_pushed = True
         run("git", "push", remote, tag)
     except subprocess.CalledProcessError as error:
         if publish_succeeded:
-            print(
-                "Release was published, but pushing git refs failed.", file=sys.stderr
+            print_post_publish_recovery(
+                remote=remote, branch=branch, tag=tag, branch_pushed=branch_pushed
             )
-            if not branch_pushed:
-                print(f"Push manually: git push {remote} {branch}", file=sys.stderr)
-            print(f"Push manually: git push {remote} {tag}", file=sys.stderr)
         elif commit_created or tag_created:
             print(file=sys.stderr)
             print("Release failed after creating local git state.", file=sys.stderr)
@@ -262,8 +346,28 @@ def main() -> None:
                     file=sys.stderr,
                 )
         raise SystemExit(error.returncode) from error
+    except SystemExit:
+        if publish_succeeded:
+            print_post_publish_recovery(
+                remote=remote, branch=branch, tag=tag, branch_pushed=branch_pushed
+            )
+        elif commit_created or tag_created:
+            print(file=sys.stderr)
+            print("Release failed after creating local git state.", file=sys.stderr)
+            if tag_created:
+                print(f"To remove the local tag: git tag -d {tag}", file=sys.stderr)
+            if commit_created:
+                print(
+                    "To reset the release commit: git reset --hard HEAD~1",
+                    file=sys.stderr,
+                )
+        raise
 
     print(f"Release {version} published successfully.")
+    if readme_commit_created and jar_size_label is not None:
+        print(
+            f"Updated README.md with {published_jar_url(version)} ({jar_size_label})."
+        )
     print("Pushed:")
     print(f"- branch: {branch}")
     print(f"- tag:    {tag}")
