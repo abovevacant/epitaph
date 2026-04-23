@@ -122,10 +122,10 @@ def maven_group_path() -> str:
     return ARTIFACT_GROUP.replace(".", "/")
 
 
-def published_jar_url(version: str) -> str:
+def published_artifact_directory_url(version: str) -> str:
     return (
         f"https://repo.maven.apache.org/maven2/{maven_group_path()}/{ARTIFACT_ID}/"
-        f"{version}/{ARTIFACT_ID}-{version}.jar"
+        f"{version}/"
     )
 
 
@@ -144,7 +144,7 @@ def format_size(byte_count: int) -> str:
 def render_readme(text: str, version: str, jar_size_label: str) -> str:
     replacement = (
         "A lightweight "
-        f"([runtime JAR: {jar_size_label}]({published_jar_url(version)})) "
+        f"([runtime JAR: {jar_size_label}]({published_artifact_directory_url(version)})) "
         "decoder for Android tombstones, focused on extracting meaning without adding weight. "
         f"{README_JAR_LINK_MARKER}"
     )
@@ -278,9 +278,9 @@ def main() -> None:
         print(f"- create annotated tag {tag}")
         print("- run ./gradlew clean build publishToCentralPortal")
         print(
-            f"- update README.md to link the release JAR URL for {version} using the locally built JAR size"
+            f"- update README.md to link the release artifact directory for {version} using the locally built JAR size"
         )
-        print(f"- create commit docs: update README jar link for {version}")
+        print(f"- create commit docs: update README artifact link for {version}")
         print(f"- push branch {branch} and tag {tag} to {remote}")
         print()
         print_diff(
@@ -324,7 +324,12 @@ def main() -> None:
         if next_readme != current_readme:
             readme_path.write_text(next_readme, encoding="utf-8")
             run("git", "add", "README.md")
-            run("git", "commit", "-m", f"docs: update README jar link for {version}")
+            run(
+                "git",
+                "commit",
+                "-m",
+                f"docs: update README artifact link for {version}",
+            )
             readme_commit_created = True
 
         run("git", "push", remote, branch)
@@ -366,7 +371,7 @@ def main() -> None:
     print(f"Release {version} published successfully.")
     if readme_commit_created and jar_size_label is not None:
         print(
-            f"Updated README.md with {published_jar_url(version)} ({jar_size_label})."
+            f"Updated README.md with {published_artifact_directory_url(version)} ({jar_size_label})."
         )
     print("Pushed:")
     print(f"- branch: {branch}")
