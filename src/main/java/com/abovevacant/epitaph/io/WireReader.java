@@ -24,6 +24,9 @@ public final class WireReader {
   public static final int WIRETYPE_LENGTH_DELIMITED = 2;
   public static final int WIRETYPE_FIXED32 = 5;
 
+  private static final int MAX_FIELD_NUMBER = (1 << 29) - 1;
+  private static final long MAX_TAG_VALUE = ((long) MAX_FIELD_NUMBER << 3) | WIRETYPE_FIXED32;
+
   private final byte[] buffer;
   private int position;
   private final int limit;
@@ -33,6 +36,15 @@ public final class WireReader {
   }
 
   public WireReader(final byte[] data, final int offset, final int length) {
+    if (offset < 0 || length < 0 || offset > data.length || length > data.length - offset) {
+      throw new IndexOutOfBoundsException(
+          "Invalid offset/length: offset="
+              + offset
+              + ", length="
+              + length
+              + ", data length="
+              + data.length);
+    }
     this.buffer = data;
     this.position = offset;
     this.limit = offset + length;
@@ -67,7 +79,17 @@ public final class WireReader {
     if (!hasRemaining()) {
       return 0;
     }
-    return (int) readVarInt();
+
+    final long rawTag = readVarInt();
+    if (rawTag < 0 || rawTag > MAX_TAG_VALUE) {
+      throw new IOException("Invalid tag: " + rawTag);
+    }
+
+    final int tag = (int) rawTag;
+    if (getFieldNumber(tag) == 0) {
+      throw new IOException("Invalid tag: field number 0");
+    }
+    return tag;
   }
 
   /** Extracts the field number from a tag. */
@@ -88,23 +110,36 @@ public final class WireReader {
   public long readVarInt() throws IOException {
     long result = 0;
     int shift = 0;
-    while (shift < 64) {
+    while (true) {
       if (!hasRemaining()) {
         throw new EOFException("Truncated varint");
       }
-      final byte b = buffer[position++];
+      final int b = buffer[position++] & 0xFF;
+      if (shift == 63 && (b & 0xFE) != 0) {
+        throw new IOException("Malformed varint");
+      }
       result |= (long) (b & 0x7F) << shift;
       if ((b & 0x80) == 0) {
         return result;
       }
       shift += 7;
     }
-    throw new IOException("Malformed varint");
   }
 
   /** Reads a 32-bit varint. */
   public int readVarInt32() throws IOException {
     return (int) readVarInt();
+  }
+
+  private int readLength() throws IOException {
+    final long length = readVarInt();
+    if (length < 0) {
+      throw new IOException("Negative length: " + length);
+    }
+    if (length > Integer.MAX_VALUE) {
+      throw new IOException("Length too large: " + length);
+    }
+    return (int) length;
   }
 
   /** Reads a 64-bit fixed value (little-endian). */
@@ -133,10 +168,7 @@ public final class WireReader {
 
   /** Reads a length-delimited field as raw bytes. */
   public byte[] readBytes() throws IOException {
-    final int length = readVarInt32();
-    if (length < 0) {
-      throw new IOException("Negative length: " + length);
-    }
+    final int length = readLength();
     if (remaining() < length) {
       throw new EOFException("Not enough bytes for length-delimited field");
     }
@@ -216,7 +248,7 @@ public final class WireReader {
         position += 8;
         break;
       case WIRETYPE_LENGTH_DELIMITED:
-        final int length = readVarInt32();
+        final int length = readLength();
         if (remaining() < length) {
           throw new EOFException("Not enough bytes to skip length-delimited");
         }

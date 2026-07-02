@@ -7,9 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Reject malformed protobuf tags, oversized lengths, invalid varints, and invalid reader bounds instead of silently accepting partial/corrupt tombstone data.
+
 ## [0.1.1] - 2026-03-16
 
 ### Added
+
 - Add `scripts/release.py` for tag-driven Maven Central releases.
 - Add artifact provenance metadata via JAR manifest `Build-Commit` / `Build-Tag` and POM `scm.tag`.
 - Add `EnumMethodParametersTest`, an ASM-based bytecode regression test for enum constructor parameter metadata.

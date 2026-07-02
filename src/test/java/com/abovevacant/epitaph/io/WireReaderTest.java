@@ -250,13 +250,12 @@ class WireReaderTest {
     }
 
     @Test
-    void negativeLengthThrows() {
-      // Varint that decodes to a negative int32 (high bit set in 5th byte)
-      // 0x80 0x80 0x80 0x80 0x08 = 2147483648 which is -2147483648 as int32
+    void lengthTooLargeThrows() {
+      // 0x80 0x80 0x80 0x80 0x08 = 2147483648, which exceeds Java's max byte[] size.
       WireReader r =
           new WireReader(new byte[] {(byte) 0x80, (byte) 0x80, (byte) 0x80, (byte) 0x80, 0x08});
       IOException ex = assertThrows(IOException.class, r::readBytes);
-      assertTrue(ex.getMessage().contains("Negative length"));
+      assertTrue(ex.getMessage().contains("Length too large"));
     }
 
     @Test

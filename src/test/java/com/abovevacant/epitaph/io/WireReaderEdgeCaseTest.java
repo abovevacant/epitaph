@@ -84,6 +84,28 @@ class WireReaderEdgeCaseTest {
     }
 
     @Test
+    void varintWithPayloadBitsBeyond64IsRejected() {
+      // A 10-byte varint may only use the lowest bit in the final byte. Anything larger
+      // encodes a value that does not fit in uint64 and must not be silently truncated.
+      WireReader r =
+          new WireReader(
+              new byte[] {
+                (byte) 0x80,
+                (byte) 0x80,
+                (byte) 0x80,
+                (byte) 0x80,
+                (byte) 0x80,
+                (byte) 0x80,
+                (byte) 0x80,
+                (byte) 0x80,
+                (byte) 0x80,
+                0x02
+              });
+      IOException ex = assertThrows(IOException.class, r::readVarInt);
+      assertTrue(ex.getMessage().contains("Malformed varint"));
+    }
+
+    @Test
     void varintWithUnnecessaryZeroPadding() throws IOException {
       // Value 1 encoded with unnecessary continuation bytes: 0x81 0x00
       // This is technically valid protobuf (overlong encoding)
@@ -105,16 +127,22 @@ class WireReaderEdgeCaseTest {
   class TagEdgeCases {
 
     @Test
-    void zeroByteMidStreamTerminatesParsing() throws IOException {
-      // A literal 0x00 byte is a valid varint encoding of 0.
-      // readTag returns 0 which signals end-of-message to callers.
-      // This means a 0x00 byte anywhere in the stream silently stops parsing.
-      // Field number 0 is reserved in protobuf, so this is technically correct,
-      // but it could mask corruption.
+    void zeroTagIsRejected() {
+      // A tag value of 0 means field number 0, which protobuf reserves as invalid.
+      // EOF is represented by having no bytes left, not by an encoded zero tag.
+      WireReader r = new WireReader(new byte[] {0x00});
+      IOException ex = assertThrows(IOException.class, r::readTag);
+      assertTrue(ex.getMessage().contains("field number 0"));
+    }
+
+    @Test
+    void zeroTagMidStreamIsRejected() {
+      // This used to silently terminate parsing and ignore the remaining valid field.
       WireReader r = new WireReader(new byte[] {0x00, 0x08, 0x01});
-      assertEquals(0, r.readTag()); // returns 0 — "end of stream"
-      assertTrue(r.hasRemaining()); // but there's still data!
-      assertEquals(2, r.remaining()); // 2 bytes silently ignored
+      IOException ex = assertThrows(IOException.class, r::readTag);
+      assertTrue(ex.getMessage().contains("field number 0"));
+      assertTrue(r.hasRemaining());
+      assertEquals(2, r.remaining());
     }
 
     @Test
@@ -126,17 +154,41 @@ class WireReaderEdgeCaseTest {
     }
 
     @Test
-    void tagCastToIntLosesHighBits() throws IOException {
-      // A tag varint larger than Integer.MAX_VALUE gets truncated by (int) cast in readTag.
-      // Encode a tag with field number that requires >32 bits: field 536870912 wire type 0
-      // = 536870912 << 3 = 4294967296 = 0x1_0000_0000 — doesn't fit in int.
-      // After (int) cast, becomes 0 — parsing stops. This is fine: protobuf field numbers
-      // are defined as int32 (max 2^29-1), so a tag this large can only come from corrupt
-      // data. A conformant writer can never produce it.
+    void tagWithFieldNumber0IsRejectedWhenRead() {
+      WireReader r = new WireReader(new byte[] {0x05}); // field 0, wire type fixed32
+      IOException ex = assertThrows(IOException.class, r::readTag);
+      assertTrue(ex.getMessage().contains("field number 0"));
+    }
+
+    @Test
+    void oversizedTagIsRejected() {
+      // Encode a tag with a field number above protobuf's maximum:
+      // field 536870912 wire type 0 = 4294967296 = 0x1_0000_0000.
+      // This used to truncate to 0 and stop parsing.
       WireReader r =
           new WireReader(new byte[] {(byte) 0x80, (byte) 0x80, (byte) 0x80, (byte) 0x80, 0x10});
-      int tag = r.readTag();
-      assertEquals(0, tag);
+      IOException ex = assertThrows(IOException.class, r::readTag);
+      assertTrue(ex.getMessage().contains("Invalid tag"));
+    }
+
+    @Test
+    void negativeDecodedTagIsRejected() {
+      WireReader r =
+          new WireReader(
+              new byte[] {
+                (byte) 0xFF,
+                (byte) 0xFF,
+                (byte) 0xFF,
+                (byte) 0xFF,
+                (byte) 0xFF,
+                (byte) 0xFF,
+                (byte) 0xFF,
+                (byte) 0xFF,
+                (byte) 0xFF,
+                0x01
+              });
+      IOException ex = assertThrows(IOException.class, r::readTag);
+      assertTrue(ex.getMessage().contains("Invalid tag"));
     }
 
     @Test
@@ -183,10 +235,41 @@ class WireReaderEdgeCaseTest {
     }
 
     @Test
-    void lengthOverflowsInt32ToNegative() {
-      // Varint 2147483648 (0x80000000) = Integer.MIN_VALUE when cast to int = negative
+    void lengthExceedingIntMaxIsRejected() {
+      // Varint 2147483648 (0x80000000) must be rejected as too large for an in-memory Java
+      // byte array, rather than cast to Integer.MIN_VALUE.
       WireReader r =
           new WireReader(new byte[] {(byte) 0x80, (byte) 0x80, (byte) 0x80, (byte) 0x80, 0x08});
+      IOException ex = assertThrows(IOException.class, r::readBytes);
+      assertTrue(ex.getMessage().contains("Length too large"));
+    }
+
+    @Test
+    void lengthAtUint32BoundaryDoesNotWrapToZero() {
+      // 4294967296 used to cast to int zero, causing readBytes() to return an empty array and
+      // leave the stream misaligned.
+      WireReader r =
+          new WireReader(new byte[] {(byte) 0x80, (byte) 0x80, (byte) 0x80, (byte) 0x80, 0x10});
+      IOException ex = assertThrows(IOException.class, r::readBytes);
+      assertTrue(ex.getMessage().contains("Length too large"));
+    }
+
+    @Test
+    void negativeDecodedLengthIsRejected() {
+      WireReader r =
+          new WireReader(
+              new byte[] {
+                (byte) 0xFF,
+                (byte) 0xFF,
+                (byte) 0xFF,
+                (byte) 0xFF,
+                (byte) 0xFF,
+                (byte) 0xFF,
+                (byte) 0xFF,
+                (byte) 0xFF,
+                (byte) 0xFF,
+                0x01
+              });
       IOException ex = assertThrows(IOException.class, r::readBytes);
       assertTrue(ex.getMessage().contains("Negative length"));
     }
@@ -220,6 +303,15 @@ class WireReaderEdgeCaseTest {
       WireReader r = new WireReader(new byte[] {0x03, 0x41, 0x42, 0x43});
       r.skipField(WireReader.WIRETYPE_LENGTH_DELIMITED);
       assertFalse(r.hasRemaining());
+    }
+
+    @Test
+    void skipLengthDelimitedRejectsLengthTooLarge() {
+      WireReader r =
+          new WireReader(new byte[] {(byte) 0x80, (byte) 0x80, (byte) 0x80, (byte) 0x80, 0x08});
+      IOException ex =
+          assertThrows(IOException.class, () -> r.skipField(WireReader.WIRETYPE_LENGTH_DELIMITED));
+      assertTrue(ex.getMessage().contains("Length too large"));
     }
 
     @Test
@@ -313,12 +405,35 @@ class WireReaderEdgeCaseTest {
   class OffsetLimitBoundary {
 
     @Test
-    void offsetBeyondArrayDoesNotThrowUntilRead() {
-      // Constructing with offset beyond array length — hasRemaining returns false
+    void offsetAtArrayEndIsAllowed() {
       byte[] data = new byte[] {0x01, 0x02};
       WireReader r = new WireReader(data, 2, 0);
       assertFalse(r.hasRemaining());
       assertEquals(0, r.remaining());
+    }
+
+    @Test
+    void constructorRejectsNegativeOffset() {
+      byte[] data = new byte[] {0x01, 0x02};
+      assertThrows(IndexOutOfBoundsException.class, () -> new WireReader(data, -1, 0));
+    }
+
+    @Test
+    void constructorRejectsNegativeLength() {
+      byte[] data = new byte[] {0x01, 0x02};
+      assertThrows(IndexOutOfBoundsException.class, () -> new WireReader(data, 0, -1));
+    }
+
+    @Test
+    void constructorRejectsOffsetPastArrayEnd() {
+      byte[] data = new byte[] {0x01, 0x02};
+      assertThrows(IndexOutOfBoundsException.class, () -> new WireReader(data, 3, 0));
+    }
+
+    @Test
+    void constructorRejectsLengthPastArrayEnd() {
+      byte[] data = new byte[] {0x01, 0x02};
+      assertThrows(IndexOutOfBoundsException.class, () -> new WireReader(data, 1, 2));
     }
 
     @Test

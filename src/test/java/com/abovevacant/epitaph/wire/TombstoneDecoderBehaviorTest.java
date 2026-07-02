@@ -294,16 +294,15 @@ class TombstoneDecoderBehaviorTest {
   class ZeroByteInStream {
 
     @Test
-    void zeroByteCausesEarlyTermination() throws IOException {
-      // Set pid=42, then a zero byte (tag=0), then uid=99
-      // The zero byte should terminate parsing — uid should remain at default
+    void zeroByteTagIsRejected() {
+      // Set pid=42, then a zero byte (tag=0), then uid=99. The zero tag used to terminate
+      // parsing early and silently drop uid; it should now be reported as corrupt input.
       byte[] pidField = varintField(5, 42);
       byte[] zeroByte = new byte[] {0x00};
       byte[] uidField = varintField(7, 99);
       byte[] data = concat(pidField, zeroByte, uidField);
-      Tombstone t = TombstoneDecoder.decode(data);
-      assertEquals(42, t.pid);
-      assertEquals(0, t.uid); // uid never parsed — silently lost
+      IOException ex = assertThrows(IOException.class, () -> TombstoneDecoder.decode(data));
+      assertTrue(ex.getMessage().contains("field number 0"));
     }
   }
 
