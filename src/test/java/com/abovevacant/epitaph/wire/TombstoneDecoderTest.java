@@ -34,7 +34,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 class TombstoneDecoderTest {
 
   static Stream<String> tombstoneTestCases() {
-    return Stream.of("tombstone_sigsegv", "tombstone_exception");
+    return Stream.of("tombstone_sigsegv", "tombstone_exception", "tombstone_android17_abort");
   }
 
   @ParameterizedTest
@@ -91,6 +91,15 @@ class TombstoneDecoderTest {
     sb.append("revision: ").append(t.revision).append("\n");
     sb.append("timestamp: ").append(t.timestamp).append("\n");
     sb.append("pid: ").append(t.pid).append("\n");
+    if (t.ppid != 0) {
+      sb.append("ppid: ").append(t.ppid).append("\n");
+    }
+    if (!t.executableName.isEmpty()) {
+      sb.append("executableName: ").append(t.executableName).append("\n");
+    }
+    if (!t.kernelRelease.isEmpty()) {
+      sb.append("kernelRelease: ").append(t.kernelRelease).append("\n");
+    }
     sb.append("tid: ").append(t.tid).append("\n");
     sb.append("uid: ").append(t.uid).append("\n");
     sb.append("selinuxLabel: ").append(t.selinuxLabel).append("\n");
@@ -208,6 +217,9 @@ class TombstoneDecoderTest {
           .append(m.write ? "w" : "-")
           .append(m.execute ? "x" : "-");
       sb.append(" ").append(m.mappingName);
+      if (!m.vmFlags.isEmpty()) {
+        sb.append(" vmFlags=").append(m.vmFlags);
+      }
       sb.append("\n");
     }
 
@@ -225,7 +237,11 @@ class TombstoneDecoderTest {
     sb.append("count: ").append(t.openFds.size()).append("\n");
     for (int i = 0; i < t.openFds.size(); i++) {
       FD fd = t.openFds.get(i);
-      sb.append("  fd ").append(fd.fd).append(": ").append(fd.path).append("\n");
+      sb.append("  fd ").append(fd.fd).append(": ").append(fd.path);
+      if (!fd.details.isEmpty()) {
+        sb.append(" details=").append(fd.details);
+      }
+      sb.append("\n");
     }
 
     return sb.toString();

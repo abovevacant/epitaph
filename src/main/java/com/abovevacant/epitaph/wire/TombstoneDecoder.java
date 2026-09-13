@@ -16,7 +16,7 @@ import java.util.Map;
  * tombstone protobuf schema.
  *
  * <p>The tombstone protobuf schema is defined at: <a
- * href="https://android.googlesource.com/platform/system/core/+/refs/heads/main/debuggerd/proto/tombstone.proto">...</a>
+ * href="https://android.googlesource.com/platform/system/core/+/545d2487e38192a2ce25040897ced877cf6b4f53/debuggerd/proto/tombstone.proto">...</a>
  */
 public final class TombstoneDecoder {
 
@@ -44,6 +44,9 @@ public final class TombstoneDecoder {
   private static final int TOMBSTONE_GUEST_ARCH = 24;
   private static final int TOMBSTONE_GUEST_THREADS = 25;
   private static final int TOMBSTONE_STACK_HISTORY_BUFFER = 26;
+  private static final int TOMBSTONE_EXECUTABLE_NAME = 27;
+  private static final int TOMBSTONE_KERNEL_RELEASE = 28;
+  private static final int TOMBSTONE_PPID = 29;
 
   // Signal field numbers
   private static final int SIGNAL_NUMBER = 1;
@@ -92,6 +95,7 @@ public final class TombstoneDecoder {
   private static final int MAPPING_NAME = 7;
   private static final int MAPPING_BUILD_ID = 8;
   private static final int MAPPING_LOAD_BIAS = 9;
+  private static final int MAPPING_VMFLAGS = 10;
 
   // MemoryDump field numbers
   private static final int MEMORY_DUMP_REGISTER_NAME = 1;
@@ -125,6 +129,7 @@ public final class TombstoneDecoder {
   private static final int FD_PATH = 2;
   private static final int FD_OWNER = 3;
   private static final int FD_TAG = 4;
+  private static final int FD_DETAILS = 5;
 
   // LogBuffer field numbers
   private static final int LOG_BUFFER_NAME = 1;
@@ -196,6 +201,9 @@ public final class TombstoneDecoder {
     int pid = 0;
     int tid = 0;
     int uid = 0;
+    int ppid = 0;
+    String executableName = "";
+    String kernelRelease = "";
     String selinuxLabel = "";
     final List<String> commandLine = new ArrayList<>();
     int processUptime = 0;
@@ -241,6 +249,18 @@ public final class TombstoneDecoder {
         case TOMBSTONE_PID:
           expectVarint(fieldNumber, wireType);
           pid = reader.readVarInt32();
+          break;
+        case TOMBSTONE_PPID:
+          expectVarint(fieldNumber, wireType);
+          ppid = reader.readVarInt32();
+          break;
+        case TOMBSTONE_EXECUTABLE_NAME:
+          expectBytes(fieldNumber, wireType);
+          executableName = reader.readString();
+          break;
+        case TOMBSTONE_KERNEL_RELEASE:
+          expectBytes(fieldNumber, wireType);
+          kernelRelease = reader.readString();
           break;
         case TOMBSTONE_TID:
           expectVarint(fieldNumber, wireType);
@@ -339,7 +359,10 @@ public final class TombstoneDecoder {
         openFds,
         pageSize,
         hasBeen16kbMode,
-        stackHistoryBuffer);
+        stackHistoryBuffer,
+        executableName,
+        kernelRelease,
+        ppid);
   }
 
   static Signal decodeSignal(final WireReader reader) throws IOException {
@@ -615,6 +638,7 @@ public final class TombstoneDecoder {
     String mappingName = "";
     String buildId = "";
     long loadBias = 0;
+    String vmFlags = "";
 
     int tag;
     while ((tag = reader.readTag()) != 0) {
@@ -654,6 +678,10 @@ public final class TombstoneDecoder {
           expectBytes(fieldNumber, wireType);
           buildId = reader.readString();
           break;
+        case MAPPING_VMFLAGS:
+          expectBytes(fieldNumber, wireType);
+          vmFlags = reader.readString();
+          break;
         case MAPPING_LOAD_BIAS:
           expectVarint(fieldNumber, wireType);
           loadBias = reader.readVarInt();
@@ -665,7 +693,16 @@ public final class TombstoneDecoder {
     }
 
     return new MemoryMapping(
-        beginAddress, endAddress, offset, read, write, execute, mappingName, buildId, loadBias);
+        beginAddress,
+        endAddress,
+        offset,
+        read,
+        write,
+        execute,
+        mappingName,
+        buildId,
+        loadBias,
+        vmFlags);
   }
 
   static MemoryDump decodeMemoryDump(final WireReader reader) throws IOException {
@@ -844,6 +881,7 @@ public final class TombstoneDecoder {
     int fd = 0;
     String path = "";
     String owner = "";
+    String details = "";
     long tag = 0;
 
     int wireTag;
@@ -864,6 +902,10 @@ public final class TombstoneDecoder {
           expectBytes(fieldNumber, wireType);
           owner = reader.readString();
           break;
+        case FD_DETAILS:
+          expectBytes(fieldNumber, wireType);
+          details = reader.readString();
+          break;
         case FD_TAG:
           expectVarint(fieldNumber, wireType);
           tag = reader.readVarInt();
@@ -874,7 +916,7 @@ public final class TombstoneDecoder {
       }
     }
 
-    return new FD(fd, path, owner, tag);
+    return new FD(fd, path, owner, tag, details);
   }
 
   static LogBuffer decodeLogBuffer(final WireReader reader) throws IOException {

@@ -23,6 +23,9 @@ class TombstoneBuilderTest {
       assertEquals("", t.revision);
       assertEquals("", t.timestamp);
       assertEquals(0, t.pid);
+      assertEquals(0, t.ppid);
+      assertEquals("", t.executableName);
+      assertEquals("", t.kernelRelease);
       assertEquals(0, t.tid);
       assertEquals(0, t.uid);
       assertEquals("", t.selinuxLabel);
@@ -56,6 +59,9 @@ class TombstoneBuilderTest {
               .revision("rev2")
               .timestamp("2025-06-01T00:00:00Z")
               .pid(1234)
+              .ppid(123)
+              .executableName("/system/bin/app")
+              .kernelRelease("6.12.58-android16")
               .tid(5678)
               .uid(10042)
               .selinuxLabel("u:r:untrusted_app:s0")
@@ -71,6 +77,9 @@ class TombstoneBuilderTest {
       assertEquals("rev2", t.revision);
       assertEquals("2025-06-01T00:00:00Z", t.timestamp);
       assertEquals(1234, t.pid);
+      assertEquals(123, t.ppid);
+      assertEquals("/system/bin/app", t.executableName);
+      assertEquals("6.12.58-android16", t.kernelRelease);
       assertEquals(5678, t.tid);
       assertEquals(10042, t.uid);
       assertEquals("u:r:untrusted_app:s0", t.selinuxLabel);

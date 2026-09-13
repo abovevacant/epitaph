@@ -1,0 +1,48 @@
+{
+  "repo": "https://android.googlesource.com/platform/system/core",
+  "oldest_release": 16,
+  "branches": {
+    "main": {
+      "reviewed_commit": "981d145117e8992842cdddee555c57e60c7a220a",
+      "schemas": {
+        "debuggerd/proto/tombstone.proto": "4bc64faf6b96c1f25a7b288802392f84872c948b39cd1a28f223ade68cf02af4"
+      }
+    },
+    "android16-release": {
+      "reviewed_commit": "68be0c2c0006a0740d0b1809abe4717308f90d15",
+      "schemas": {
+        "debuggerd/proto/tombstone.proto": "4bc64faf6b96c1f25a7b288802392f84872c948b39cd1a28f223ade68cf02af4"
+      }
+    },
+    "android16-qpr1-release": {
+      "reviewed_commit": "4deec4059670028cccb7f9f22bb73813ae71c6f3",
+      "schemas": {
+        "debuggerd/proto/tombstone.proto": "9e81933f32b52cd7ebe096ab6bb2bb8173e21695b847cd454d910fd93b390cdb"
+      }
+    },
+    "android16-qpr2-release": {
+      "reviewed_commit": "e9d1fa3705d7fbd0ac1c942bc4c276161bfbfed1",
+      "schemas": {
+        "debuggerd/proto/tombstone.proto": "9e81933f32b52cd7ebe096ab6bb2bb8173e21695b847cd454d910fd93b390cdb"
+      }
+    },
+    "android16-security-release": {
+      "reviewed_commit": "68be0c2c0006a0740d0b1809abe4717308f90d15",
+      "schemas": {
+        "debuggerd/proto/tombstone.proto": "4bc64faf6b96c1f25a7b288802392f84872c948b39cd1a28f223ade68cf02af4"
+      }
+    },
+    "android17-release": {
+      "reviewed_commit": "545d2487e38192a2ce25040897ced877cf6b4f53",
+      "schemas": {
+        "debuggerd/proto/tombstone.proto": "815f5632b36f94e7d4ffc3731f81c643eac14f7fdea208eed390cbb5f17e04b6"
+      }
+    },
+    "android17-security-release": {
+      "reviewed_commit": "2de25eeaec5500f0bfbc5d1ae320ca8c702e39f6",
+      "schemas": {
+        "debuggerd/proto/tombstone.proto": "815f5632b36f94e7d4ffc3731f81c643eac14f7fdea208eed390cbb5f17e04b6"
+      }
+    }
+  }
+}

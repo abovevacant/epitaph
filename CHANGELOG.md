@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Decode Android 16 QPR1's executable name and kernel release, and Android 17's parent process ID, mapping VmFlags, and file descriptor details. Added model fields, builder setters, and constructor overloads while keeping existing constructors and defaults for older tombstones.
+- Added a complete Android 17 ARM64 emulator crash fixture, independently checked with `debuggerd` and `protoc`, plus reproduction source and regression tests for all five new fields.
+- Track reviewed tombstone schemas independently on `main` and Android release/QPR/security branches, with discovery of new release families, content-based baselines, and offline checker tests in CI.
+
 ### Fixed
 
 - Reject malformed protobuf tags, oversized lengths, invalid varints, and invalid reader bounds instead of silently accepting partial/corrupt tombstone data.

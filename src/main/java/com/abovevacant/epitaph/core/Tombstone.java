@@ -27,6 +27,15 @@ public final class Tombstone {
   /** Process ID. */
   public final int pid;
 
+  /** Parent process ID, or zero if absent (added in Android 17). */
+  public final int ppid;
+
+  /** Executable path, or empty string if absent (added in Android 16 QPR1). */
+  public final String executableName;
+
+  /** Kernel release, or empty string if absent (added in Android 16 QPR1). */
+  public final String kernelRelease;
+
   /** Thread ID that crashed. */
   public final int tid;
 
@@ -102,12 +111,72 @@ public final class Tombstone {
       final int pageSize,
       final boolean hasBeen16kbMode,
       final StackHistoryBuffer stackHistoryBuffer) {
+    this(
+        arch,
+        guestArch,
+        buildFingerprint,
+        revision,
+        timestamp,
+        pid,
+        tid,
+        uid,
+        selinuxLabel,
+        commandLine,
+        processUptime,
+        signal,
+        abortMessage,
+        crashDetails,
+        causes,
+        threads,
+        guestThreads,
+        memoryMappings,
+        logBuffers,
+        openFds,
+        pageSize,
+        hasBeen16kbMode,
+        stackHistoryBuffer,
+        "",
+        "",
+        0);
+  }
+
+  /** Constructs a tombstone including the Android 16 QPR1 and Android 17 fields. */
+  public Tombstone(
+      final Architecture arch,
+      final Architecture guestArch,
+      final String buildFingerprint,
+      final String revision,
+      final String timestamp,
+      final int pid,
+      final int tid,
+      final int uid,
+      final String selinuxLabel,
+      final List<String> commandLine,
+      final int processUptime,
+      final Signal signal,
+      final String abortMessage,
+      final List<CrashDetail> crashDetails,
+      final List<Cause> causes,
+      final Map<Integer, TombstoneThread> threads,
+      final Map<Integer, TombstoneThread> guestThreads,
+      final List<MemoryMapping> memoryMappings,
+      final List<LogBuffer> logBuffers,
+      final List<FD> openFds,
+      final int pageSize,
+      final boolean hasBeen16kbMode,
+      final StackHistoryBuffer stackHistoryBuffer,
+      final String executableName,
+      final String kernelRelease,
+      final int ppid) {
     this.arch = arch;
     this.guestArch = guestArch;
     this.buildFingerprint = buildFingerprint;
     this.revision = revision;
     this.timestamp = timestamp;
     this.pid = pid;
+    this.ppid = ppid;
+    this.executableName = executableName;
+    this.kernelRelease = kernelRelease;
     this.tid = tid;
     this.uid = uid;
     this.selinuxLabel = selinuxLabel;
@@ -140,6 +209,9 @@ public final class Tombstone {
     private String revision = "";
     private String timestamp = "";
     private int pid;
+    private int ppid;
+    private String executableName = "";
+    private String kernelRelease = "";
     private int tid;
     private int uid;
     private String selinuxLabel = "";
@@ -160,6 +232,21 @@ public final class Tombstone {
 
     public Builder pid(int pid) {
       this.pid = pid;
+      return this;
+    }
+
+    public Builder ppid(int ppid) {
+      this.ppid = ppid;
+      return this;
+    }
+
+    public Builder executableName(String executableName) {
+      this.executableName = executableName;
+      return this;
+    }
+
+    public Builder kernelRelease(String kernelRelease) {
+      this.kernelRelease = kernelRelease;
       return this;
     }
 
@@ -309,7 +396,10 @@ public final class Tombstone {
           new ArrayList<>(openFds),
           pageSize,
           hasBeen16kbMode,
-          stackHistoryBuffer);
+          stackHistoryBuffer,
+          executableName,
+          kernelRelease,
+          ppid);
     }
   }
 }
