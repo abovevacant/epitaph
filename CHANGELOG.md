@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-13
+
 ### Added
 
 - Decode Android 16 QPR1's executable name and kernel release, and Android 17's parent process ID, mapping VmFlags, and file descriptor details. Added model fields, builder setters, and constructor overloads while keeping existing constructors and defaults for older tombstones.
@@ -36,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Lightweight Android tombstone protobuf implementation (core tombstone model, wire reader, and decoder).
 - Initial Maven Central release.
 
-[Unreleased]: https://github.com/abovevacant/epitaph/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/abovevacant/epitaph/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/abovevacant/epitaph/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/abovevacant/epitaph/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/abovevacant/epitaph/tree/v0.1.0
