@@ -158,6 +158,30 @@ centralPortal {
     }
 }
 
+// Use the publishing task's effective credentials, including task-level overrides.
+// Pass them through stdin only; do not expose them in argv or a temporary file.
+tasks.register<Exec>("checkCentralPortalCredentials") {
+    group = "publishing"
+    description = "Verify Central Portal credentials and namespace access without uploading."
+    notCompatibleWithConfigurationCache("Resolve publishing credentials freshly for every check.")
+    outputs.upToDateWhen { false }
+    commandLine("python3", layout.projectDirectory.file("scripts/check_central_portal_credentials.py").asFile)
+    doFirst {
+        val publisher = project.tasks.named<net.thebugmc.gradle.sonatypepublisher.PublishToCentralPortal>(
+            "publishToCentralPortal"
+        ).get()
+        val portal = project.extensions.getByType<net.thebugmc.gradle.sonatypepublisher.CentralPortalExtension>()
+        val credentials = mapOf(
+            "username" to (publisher.username.orNull ?: portal.username.orNull
+                ?: project.findProperty("centralPortal.username")?.toString() ?: ""),
+            "password" to (publisher.password.orNull ?: portal.password.orNull
+                ?: project.findProperty("centralPortal.password")?.toString() ?: ""),
+            "namespace" to project.group.toString()
+        )
+        standardInput = groovy.json.JsonOutput.toJson(credentials).byteInputStream(Charsets.UTF_8)
+    }
+}
+
 signing {
     val hasKey = findProperty("signing.keyId") != null
         || findProperty("signing.gnupg.keyName") != null

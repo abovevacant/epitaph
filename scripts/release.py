@@ -40,6 +40,27 @@ def run(
     )
 
 
+def check_publishing_credentials() -> None:
+    print("Checking Central Portal credentials (no upload)...", flush=True)
+    try:
+        result = run(
+            "./gradlew",
+            "--no-configuration-cache",
+            "--console=plain",
+            "checkCentralPortalCredentials",
+            check=False,
+            capture_output=False,
+        )
+        if result.returncode:
+            fail(
+                "Central Portal preflight failed; no release files, commits, or tags were changed.",
+                result.returncode,
+            )
+    except OSError:
+        fail("Could not run the Central Portal preflight; no release state was changed.")
+
+
+
 def usage() -> None:
     print("Usage: ./scripts/release.py [--check] <version>", file=sys.stderr)
     print("Example: ./scripts/release.py 0.1.1", file=sys.stderr)
@@ -231,6 +252,10 @@ def main() -> None:
             "Working tree is not clean. Commit, stash, or remove changes before releasing."
         )
 
+    # Both modes authenticate independently, before even fetching refs. Never
+    # trust a prior --check run: the token may have expired or been revoked.
+    check_publishing_credentials()
+
     run("git", "fetch", remote, "--tags")
 
     if (
@@ -268,7 +293,8 @@ def main() -> None:
     next_readme_preview = render_readme(current_readme, version, "<local build size>")
 
     if check_mode:
-        print(f"Release check for {version} succeeded.")
+        print(f"Release check for {version} succeeded (including Central Portal authentication).")
+        print("No upload performed; artifact validation still happens during publication.")
         print("Would:")
         print(f"- bump version {current_version} -> {version}")
         print(f"- move current Unreleased notes into {version}")
@@ -298,7 +324,7 @@ def main() -> None:
     publish_succeeded = False
     readme_commit_created = False
     branch_pushed = False
-    jar_size_label: str | None = None
+    jar_size_label = None
 
     try:
         run("git", "add", "gradle.properties", "CHANGELOG.md")

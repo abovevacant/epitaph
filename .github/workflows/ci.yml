@@ -19,7 +19,7 @@ jobs:
           java-version: 17
           distribution: temurin
 
-      - name: Test upstream checker (offline)
+      - name: Test maintenance scripts (offline)
         run: python3 -m unittest discover -s scripts/tests -v
 
       - name: Check formatting

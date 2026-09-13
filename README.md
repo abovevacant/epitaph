@@ -67,3 +67,26 @@ Tests include a [complete real Android 17 emulator crash](src/test/resources/REA
 ```
 ./gradlew build
 ```
+
+## Release preflight
+
+```sh
+./scripts/release.py --check <version>
+# Check only credentials, including when a local release tag already exists:
+./gradlew --no-configuration-cache checkCentralPortalCredentials
+```
+
+Both `--check` and an actual `release.py <version>` invocation independently verify
+Central Portal credentials and namespace access before fetching refs or changing
+release files, commits, or tags. A previous successful check is never reused.
+The probe uses the publishing task's effective credentials and a read-only
+[list-deployments request](https://central.sonatype.com/api-doc); it does not
+upload, publish, or delete anything. Credentials are passed from Gradle over
+stdin, not logged or written to a temporary file.
+
+Configure the Portal **user-token** username/password pair using
+`centralPortalUsername` / `centralPortalPassword` Gradle properties or
+`CENTRAL_PORTAL_USERNAME` / `CENTRAL_PORTAL_PASSWORD` environment variables.
+The Gradle properties take precedence. Authentication failures, namespace access
+failures, and network/API errors stop the release. This checks access, not bundle
+validation or a guarantee that a later upload cannot fail.
