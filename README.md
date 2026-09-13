@@ -2,7 +2,7 @@
 [![Maven Central Version](https://img.shields.io/maven-central/v/com.abovevacant/epitaph)](https://central.sonatype.com/artifact/com.abovevacant/epitaph)
 [![codecov](https://codecov.io/gh/abovevacant/epitaph/graph/badge.svg)](https://codecov.io/gh/abovevacant/epitaph)
 
-A lightweight ([runtime JAR: 31.0 KB](https://repo.maven.apache.org/maven2/com/abovevacant/epitaph/0.1.1/)) decoder for Android tombstones, focused on extracting meaning without adding weight. <!-- release:jar-link -->
+A lightweight ([runtime JAR: 32.4 KB](https://repo.maven.apache.org/maven2/com/abovevacant/epitaph/0.2.0/)) decoder for Android tombstones, focused on extracting meaning without adding weight. <!-- release:jar-link -->
 
 ## Features
 
